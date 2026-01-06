@@ -1,0 +1,14 @@
+grpcio
+grpcio-tools
+mcp
+optimum-intel[openvino,nncf]
+chromadb
+opencv-python
+moviepy
+python-pptx
+fpdf
+psutil
+transformers
+torch
+uv
+--extra-index-url https://download.pytorch.org/whl/cpu

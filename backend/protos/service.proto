@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package obsidian;
+
+service ObsidianService {
+  // Uploads a video for processing. Returns the video ID.
+  rpc UploadVideo (UploadRequest) returns (UploadResponse) {}
+
+  // Sends a chat message and receives a streaming response.
+  rpc Chat (ChatRequest) returns (stream ChatResponse) {}
+
+  // Retrieves chat history.
+  rpc GetHistory (GetHistoryRequest) returns (GetHistoryResponse) {}
+}
+
+message UploadRequest {
+  string file_path = 1;
+}
+
+message UploadResponse {
+  string video_id = 1;
+  string status = 2; // "processing", "ready", "error"
+}
+
+message ChatRequest {
+  string video_id = 1;
+  string message = 2;
+}
+
+message ChatResponse {
+  string content = 1; // Chunk of text
+  string type = 2; // "text", "status", "error"
+}
+
+message GetHistoryRequest {
+  string video_id = 1;
+}
+
+message GetHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+message ChatMessage {
+  string role = 1; // "user", "assistant"
+  string content = 2;
+  string timestamp = 3;
+}
