@@ -4,7 +4,7 @@ import grpc
 from concurrent import futures
 import sys
 import os
-from sonora.aio import SonoraWeb
+import sonora.asgi
 
 # Add backend/app directory to sys.path to ensure imports work
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -53,21 +53,27 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
             return service_pb2.GetHistoryResponse(messages=[])
 
 async def serve():
-    # Use SonoraWeb to wrap the gRPC server for gRPC-Web support
-    server = SonoraWeb(grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10)))
-    service_pb2_grpc.add_ObsidianServiceServicer_to_server(ObsidianService(), server)
+    pass # No-op for direct execution if imported
     
-    # SonoraWeb needs to bind to a TCP port directly or be served behind a proxy.
-    # Here we bind directly. Note: Sonora creates an HTTP/1.1 server that handles gRPC-Web.
-    # We use a different port (8080) for gRPC-Web or we can just use the standard gRPC port if we purely use gRPC-Web.
-    # For now, let's allow both if possible, but SonoraWeb wraps the whole thing.
+def get_application():
+    from starlette.middleware.cors import CORSMiddleware
+    # Create ASGI application
+    # Disable internal CORS to avoid uvicorn header type issues
+    app = sonora.asgi.grpcASGI(enable_cors=False)
+    service_pb2_grpc.add_ObsidianServiceServicer_to_server(ObsidianService(), app)
     
-    port = 8080
-    server.add_insecure_port(f'[::]:{port}')
-    logger.info(f"Sonora (gRPC-Web) Server starting on port {port}...")
-    
-    await server.start()
-    await server.wait_for_termination()
+    # Wrap with Starlette's robust CORS middleware
+    app = CORSMiddleware(
+        app,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return app
 
 if __name__ == '__main__':
-    asyncio.run(serve())
+    import uvicorn
+    logger.info("Starting Sonora (gRPC-Web) Server with Uvicorn on port 8080...")
+    uvicorn.run(get_application(), host="0.0.0.0", port=8080)
+

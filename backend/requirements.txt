@@ -13,4 +13,5 @@ torch
 uv
 sonora
 urllib3<2.0
+uvicorn
 --extra-index-url https://download.pytorch.org/whl/cpu

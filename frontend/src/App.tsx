@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { chatStream, uploadVideo, getHistory } from './api/client';
-import { Send, Upload, FileVideo, Bot, User } from 'lucide-react';
+import { Send, Upload, FileVideo, Bot, User, X, CheckCircle2 } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,6 +14,7 @@ function App() {
   const [videoId, setVideoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,13 +23,13 @@ function App() {
     }
   }, [messages, isStreaming]);
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      // In a real app we'd read the file content or send the path if using Tauri system dialogs
-      // For now, we are sending the path string as per our mocked backend.
-      // Since browsers block full paths, we'll mock the path or use the name.
-      // In Tauri, we'd use the fs API to get the path.
-
       const fileName = e.target.files[0].name;
       // Mocking full path for local test
       const path = `/tmp/${fileName}`;
@@ -37,6 +38,7 @@ function App() {
       try {
         const vid = await uploadVideo(path);
         setVideoId(vid);
+        showToast("Video uploaded successfully!");
 
         // Load history if any
         const history = await getHistory(vid);
@@ -44,7 +46,7 @@ function App() {
 
       } catch (err: any) {
         console.error(err);
-        alert("Upload failed: " + err);
+        showToast("Upload failed: " + err, 'error');
       } finally {
         setLoading(false);
       }
@@ -68,9 +70,13 @@ function App() {
       (textChunk) => {
         setMessages(prev => {
           const newHistory = [...prev];
-          const lastMsg = newHistory[newHistory.length - 1];
+          // Create A COPY of the last message to modify it immutably
+          const lastIndex = newHistory.length - 1;
+          const lastMsg = { ...newHistory[lastIndex] };
+
           if (lastMsg.role === 'assistant') {
             lastMsg.content += textChunk;
+            newHistory[lastIndex] = lastMsg;
           }
           return newHistory;
         });
@@ -78,13 +84,24 @@ function App() {
       () => setIsStreaming(false),
       (err) => {
         setIsStreaming(false);
-        alert("Chat error: " + err);
+        showToast("Chat error: " + err, 'error');
       }
     );
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-gray-100 font-sans">
+    <div className="flex flex-col h-screen bg-gray-900 text-gray-100 font-sans relative">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border animate-in fade-in slide-in-from-top-4 ${toast.type === 'success'
+            ? 'bg-green-900/90 border-green-700 text-green-100'
+            : 'bg-red-900/90 border-red-700 text-red-100'
+          }`}>
+          {toast.type === 'success' ? <CheckCircle2 size={16} /> : <X size={16} />}
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/50 backdrop-blur">
         <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">

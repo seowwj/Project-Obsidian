@@ -217,3 +217,10 @@ __marimo__/
 
 # Project specific gitignores
 PROJECT-REQUIREMENTS.md
+# Project Obsidian Specific
+obsidian.db
+test.db
+*.db
+frontend/node_modules/
+frontend/dist/
+frontend/src-tauri/target/

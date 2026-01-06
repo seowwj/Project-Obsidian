@@ -74,7 +74,7 @@ class AgentOrchestrator:
             conn.commit()
 
         # Mock response for now (Logic to route to agents goes here)
-        response_text = f"Echo: {message}. (Persistence Enabled)"
+        response_text = f"You said: {message}"
         
         # Simulate streaming
         for word in response_text.split():

@@ -1,5 +1,10 @@
-import { ObsidianServiceClient } from './service_grpc_web_pb';
-import { ChatRequest, UploadRequest, GetHistoryRequest } from './service_pb';
+import './service_grpc_web_pb';
+import './service_pb';
+
+// Access the client from the global scope (populated by the side-effects of the imports above)
+// This bypasses module interop issues with generated CommonJS code
+const { ObsidianServiceClient } = (window as any).proto.obsidian;
+const { ChatRequest, UploadRequest, GetHistoryRequest } = (window as any).proto.obsidian;
 
 // gRPC-Web Client
 // Using localhost:8080 where Sonora is listening

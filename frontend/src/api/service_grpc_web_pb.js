@@ -20,7 +20,9 @@ const grpc = {};
 grpc.web = require('grpc-web');
 
 const proto = {};
-proto.obsidian = require('./service_pb.js');
+require('./service_pb.js');
+// Fallback to global namespace populated by service_pb.js
+proto.obsidian = window.proto.obsidian;
 
 /**
  * @param {string} hostname
@@ -31,21 +33,21 @@ proto.obsidian = require('./service_pb.js');
  * @final
  */
 proto.obsidian.ObsidianServiceClient =
-    function(hostname, credentials, options) {
-  if (!options) options = {};
-  options.format = 'text';
+  function (hostname, credentials, options) {
+    if (!options) options = {};
+    options.format = 'text';
 
-  /**
-   * @private @const {!grpc.web.GrpcWebClientBase} The client
-   */
-  this.client_ = new grpc.web.GrpcWebClientBase(options);
+    /**
+     * @private @const {!grpc.web.GrpcWebClientBase} The client
+     */
+    this.client_ = new grpc.web.GrpcWebClientBase(options);
 
-  /**
-   * @private @const {string} The hostname
-   */
-  this.hostname_ = hostname.replace(/\/+$/, '');
+    /**
+     * @private @const {string} The hostname
+     */
+    this.hostname_ = hostname.replace(/\/+$/, '');
 
-};
+  };
 
 
 /**
@@ -57,21 +59,21 @@ proto.obsidian.ObsidianServiceClient =
  * @final
  */
 proto.obsidian.ObsidianServicePromiseClient =
-    function(hostname, credentials, options) {
-  if (!options) options = {};
-  options.format = 'text';
+  function (hostname, credentials, options) {
+    if (!options) options = {};
+    options.format = 'text';
 
-  /**
-   * @private @const {!grpc.web.GrpcWebClientBase} The client
-   */
-  this.client_ = new grpc.web.GrpcWebClientBase(options);
+    /**
+     * @private @const {!grpc.web.GrpcWebClientBase} The client
+     */
+    this.client_ = new grpc.web.GrpcWebClientBase(options);
 
-  /**
-   * @private @const {string} The hostname
-   */
-  this.hostname_ = hostname.replace(/\/+$/, '');
+    /**
+     * @private @const {string} The hostname
+     */
+    this.hostname_ = hostname.replace(/\/+$/, '');
 
-};
+  };
 
 
 /**
@@ -89,7 +91,7 @@ const methodDescriptor_ObsidianService_UploadVideo = new grpc.web.MethodDescript
    * @param {!proto.obsidian.UploadRequest} request
    * @return {!Uint8Array}
    */
-  function(request) {
+  function (request) {
     return request.serializeBinary();
   },
   proto.obsidian.UploadResponse.deserializeBinary
@@ -107,14 +109,14 @@ const methodDescriptor_ObsidianService_UploadVideo = new grpc.web.MethodDescript
  *     The XHR Node Readable Stream
  */
 proto.obsidian.ObsidianServiceClient.prototype.uploadVideo =
-    function(request, metadata, callback) {
-  return this.client_.rpcCall(this.hostname_ +
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
       '/obsidian.ObsidianService/UploadVideo',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_UploadVideo,
       callback);
-};
+  };
 
 
 /**
@@ -126,13 +128,13 @@ proto.obsidian.ObsidianServiceClient.prototype.uploadVideo =
  *     Promise that resolves to the response
  */
 proto.obsidian.ObsidianServicePromiseClient.prototype.uploadVideo =
-    function(request, metadata) {
-  return this.client_.unaryCall(this.hostname_ +
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
       '/obsidian.ObsidianService/UploadVideo',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_UploadVideo);
-};
+  };
 
 
 /**
@@ -150,7 +152,7 @@ const methodDescriptor_ObsidianService_Chat = new grpc.web.MethodDescriptor(
    * @param {!proto.obsidian.ChatRequest} request
    * @return {!Uint8Array}
    */
-  function(request) {
+  function (request) {
     return request.serializeBinary();
   },
   proto.obsidian.ChatResponse.deserializeBinary
@@ -165,13 +167,13 @@ const methodDescriptor_ObsidianService_Chat = new grpc.web.MethodDescriptor(
  *     The XHR Node Readable Stream
  */
 proto.obsidian.ObsidianServiceClient.prototype.chat =
-    function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
+  function (request, metadata) {
+    return this.client_.serverStreaming(this.hostname_ +
       '/obsidian.ObsidianService/Chat',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_Chat);
-};
+  };
 
 
 /**
@@ -182,13 +184,13 @@ proto.obsidian.ObsidianServiceClient.prototype.chat =
  *     The XHR Node Readable Stream
  */
 proto.obsidian.ObsidianServicePromiseClient.prototype.chat =
-    function(request, metadata) {
-  return this.client_.serverStreaming(this.hostname_ +
+  function (request, metadata) {
+    return this.client_.serverStreaming(this.hostname_ +
       '/obsidian.ObsidianService/Chat',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_Chat);
-};
+  };
 
 
 /**
@@ -206,7 +208,7 @@ const methodDescriptor_ObsidianService_GetHistory = new grpc.web.MethodDescripto
    * @param {!proto.obsidian.GetHistoryRequest} request
    * @return {!Uint8Array}
    */
-  function(request) {
+  function (request) {
     return request.serializeBinary();
   },
   proto.obsidian.GetHistoryResponse.deserializeBinary
@@ -224,14 +226,14 @@ const methodDescriptor_ObsidianService_GetHistory = new grpc.web.MethodDescripto
  *     The XHR Node Readable Stream
  */
 proto.obsidian.ObsidianServiceClient.prototype.getHistory =
-    function(request, metadata, callback) {
-  return this.client_.rpcCall(this.hostname_ +
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
       '/obsidian.ObsidianService/GetHistory',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_GetHistory,
       callback);
-};
+  };
 
 
 /**
@@ -243,13 +245,13 @@ proto.obsidian.ObsidianServiceClient.prototype.getHistory =
  *     Promise that resolves to the response
  */
 proto.obsidian.ObsidianServicePromiseClient.prototype.getHistory =
-    function(request, metadata) {
-  return this.client_.unaryCall(this.hostname_ +
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
       '/obsidian.ObsidianService/GetHistory',
       request,
       metadata || {},
       methodDescriptor_ObsidianService_GetHistory);
-};
+  };
 
 
 module.exports = proto.obsidian;
