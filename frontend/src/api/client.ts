@@ -62,6 +62,6 @@ export const chatStream = (videoId: string, message: string, onMessage: (text: s
     console.error("Stream error:", err);
     onError(err.message);
   });
-  
+
   return stream;
 };
