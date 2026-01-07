@@ -4,6 +4,7 @@ import grpc
 from concurrent import futures
 import sys
 import os
+import sqlite3
 import sonora.asgi
 
 # Add backend/app directory to sys.path to ensure imports work
@@ -12,6 +13,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import service_pb2
 import service_pb2_grpc
 from orchestrator import AgentOrchestrator
+import imageio_ffmpeg
+
+# Force transformers to see our private ffmpeg
+os.environ["PATH"] += os.pathsep + os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -39,6 +44,13 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
 
     async def GetHistory(self, request, context):
         try:
+            # Fetch status to see if we should add a progress indicator
+            with sqlite3.connect(self.orchestrator.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT status FROM videos WHERE id = ?", (request.video_id,))
+                row = cursor.fetchone()
+                status = row[0] if row else "unknown"
+
             messages = self.orchestrator.get_history(request.video_id)
             grpc_messages = []
             for msg in messages:
@@ -47,6 +59,15 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
                     content=msg["content"],
                     timestamp=msg.get("timestamp", "")
                 ))
+            
+            # Synthetic Progress Message
+            if status.startswith("processing"):
+                grpc_messages.append(service_pb2.ChatMessage(
+                    role="assistant",
+                    content=f"🔄 {status.title()}... (Please wait)",
+                    timestamp=""
+                ))
+
             return service_pb2.GetHistoryResponse(messages=grpc_messages)
         except Exception as e:
             logger.error(f"Error in GetHistory: {e}")
@@ -54,7 +75,7 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
 
 async def serve():
     pass # No-op for direct execution if imported
-    
+
 def get_application():
     from starlette.middleware.cors import CORSMiddleware
     # Create ASGI application

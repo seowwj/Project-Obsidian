@@ -4,7 +4,8 @@ mcp
 optimum-intel[openvino,nncf]
 chromadb
 opencv-python
-moviepy
+imageio-ffmpeg
+soundfile
 python-pptx
 fpdf
 psutil
@@ -14,4 +15,13 @@ uv
 sonora
 urllib3<2.0
 uvicorn
+chromadb
+openai-whisper
+sentence-transformers
+numpy
 --extra-index-url https://download.pytorch.org/whl/cpu
+num2words
+torchvision>=0.20.0
+numpy<2.3.0
+pillow<12.0
+networkx<3.5

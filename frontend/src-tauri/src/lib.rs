@@ -9,6 +9,7 @@ pub fn run() {
             .build(),
         )?;
       }
+      app.handle().plugin(tauri_plugin_dialog::init())?;
       Ok(())
     })
     .run(tauri::generate_context!())

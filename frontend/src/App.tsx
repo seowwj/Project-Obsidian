@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { chatStream, uploadVideo, getHistory } from './api/client';
-import { Send, Upload, FileVideo, Bot, User, X, CheckCircle2 } from 'lucide-react';
+import { chatStream, getHistory } from './api/client';
+import { Send, Bot, User, X, CheckCircle2, RefreshCw } from 'lucide-react';
+import { VideoUpload } from './components/VideoUpload';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -28,29 +29,40 @@ function App() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const fileName = e.target.files[0].name;
-      // Mocking full path for local test
-      const path = `/tmp/${fileName}`;
-
-      setLoading(true);
-      try {
-        const vid = await uploadVideo(path);
-        setVideoId(vid);
-        showToast("Video uploaded successfully!");
-
-        // Load history if any
-        const history = await getHistory(vid);
-        setMessages(history);
-
-      } catch (err: any) {
-        console.error(err);
-        showToast("Upload failed: " + err, 'error');
-      } finally {
-        setLoading(false);
-      }
+  // Polling for progress updates
+  useEffect(() => {
+    let interval: any;
+    if (videoId && !isStreaming) {
+      interval = setInterval(async () => {
+        try {
+          const history = await getHistory(videoId);
+          // Check if the new history is different (naive check length or last msg content)
+          setMessages(prev => {
+            const lastOld = prev[prev.length - 1];
+            const lastNew = history[history.length - 1];
+            if (!lastOld || !lastNew || lastOld.content !== lastNew.content || prev.length !== history.length) {
+              return history;
+            }
+            return prev;
+          });
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
     }
+    return () => clearInterval(interval);
+  }, [videoId, isStreaming]);
+
+  const handleUploadSuccess = (vid: string) => {
+    setVideoId(vid);
+    setLoading(true); // Simulate loading state/transition
+    showToast("Video submitted! Processing started...", 'success');
+    setMessages([]);
+    setTimeout(() => setLoading(false), 500);
+  };
+
+  const handleUploadError = (err: string) => {
+    showToast(err, 'error');
   };
 
   const handleSend = () => {
@@ -94,8 +106,8 @@ function App() {
       {/* Toast Notification */}
       {toast.show && (
         <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border animate-in fade-in slide-in-from-top-4 ${toast.type === 'success'
-            ? 'bg-green-900/90 border-green-700 text-green-100'
-            : 'bg-red-900/90 border-red-700 text-red-100'
+          ? 'bg-green-900/90 border-green-700 text-green-100'
+          : 'bg-red-900/90 border-red-700 text-red-100'
           }`}>
           {toast.type === 'success' ? <CheckCircle2 size={16} /> : <X size={16} />}
           <span className="text-sm font-medium">{toast.message}</span>
@@ -103,30 +115,31 @@ function App() {
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/50 backdrop-blur">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/50 backdrop-blur z-10">
         <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Obsidian AI
         </h1>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-800 hover:bg-gray-700 rounded-lg cursor-pointer transition-colors border border-gray-700">
-            <Upload size={16} />
-            {videoId ? 'Change Video' : 'Upload Video'}
-            <input type="file" onChange={handleUpload} className="hidden" accept="video/*" />
-          </label>
-        </div>
+        {videoId && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setVideoId(null)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-800 hover:bg-gray-700 rounded-lg cursor-pointer transition-colors border border-gray-700"
+            >
+              <RefreshCw size={16} />
+              New Video
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Chat Area */}
-      <main className="flex-1 overflow-hidden relative">
+      <main className="flex-1 overflow-hidden relative flex flex-col">
         {!videoId ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-4">
-            <div className="p-6 rounded-full bg-gray-800/50 border border-gray-700">
-              <FileVideo size={64} className="text-gray-500" />
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-200">No Video Selected</h2>
-            <p className="text-gray-400 max-w-md">
-              Upload a video to start analyzing its content using our local AI agents.
-            </p>
+          <div className="flex-1 flex items-center justify-center">
+            <VideoUpload
+              onUploadSuccess={handleUploadSuccess}
+              onUploadError={handleUploadError}
+            />
           </div>
         ) : (
           <div className="h-full flex flex-col">

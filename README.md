@@ -1,3 +1,56 @@
 # Project Obsidian
 
-A fully local AI ecosystem for video summarization and PDF/PPT generation
+A fully local AI ecosystem for video summarization and PDF/PPT generation.
+
+## Environment Setup (Development)
+
+### Prerequisites
+- Windows OS (Migrated from Ubuntu/WSL)
+- Python 3.x (Add to PATH during installation)
+- Node.js & npm (Download and install standard Windows installer from nodejs.org)
+- Rust & Cargo (Download and install from rustup.rs, required for Tauri)
+
+### Backend Initialization
+```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install uv
+uv pip install -r requirements.txt
+```
+
+### Frontend Initialization
+```bash
+cd frontend
+npm install
+```
+
+## Running the Application
+
+### 1. Start Backend (Terminal 1)
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m app.server
+```
+*Server will start on localhost:8080 (gRPC-Web)*
+
+### 2. Start Frontend (Terminal 2)
+```powershell
+# Ensure Cargo is in your PATH. If 'cargo' is not found, run this first:
+$env:PATH += ";C:\Users\$env:USERNAME\.cargo\bin"
+
+cd frontend
+npm run tauri dev
+```
+*This will launch the application window.*
+
+## Known Limitations
+- **iGPU Drivers**: Due to issues with iGPU drivers on older processors within WSL, the development environment has been migrated to pure Windows. This is a known constraint for hardware acceleration support.
+- **System Path/Dependencies**: Common development tools (like `npm`, `git`) available in WSL must be manually installed and added to the System PATH in Windows.
+
+## Troubleshooting
+### "FFmpeg not found" Error
+If you encounter this error during video processing, it typically means `modules` cannot find the system FFmpeg. We have implemented a bypass using a private binary, but if issues persist:
+1. Ensure `imageio-ffmpeg` is installed.
+2. The `app.server` includes a patch to auto-add the binary to `PATH`. Ensure you run the server via `python -m app.server`.

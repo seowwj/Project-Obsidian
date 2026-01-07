@@ -7,8 +7,18 @@ Project Obsidian is a local-first, offline AI desktop application designed to an
 - **Offline Only**: No internet connection required for core functionality.
 - **Local Inference**: All models run locally (OpenVINO / Hugging Face).
 - **Video Limit**: Optimized for ~1 minute MP4 files.
+- **File Limits**: Max 200MB. Supported formats: `.mp4`, `.mkv`, `.mov`, `.avi`.
 - **Privacy**: Chat history and data persist locally.
 - **Cross-Platform**: Fully supported on Ubuntu (Linux) and Windows.
+
+## 2.1 System Requirements
+- **OS**: Linux (Ubuntu 22.04+) or Windows 10/11 (WSL2 recommended).
+- **Runtime**: Python 3.10+, Node.js 18+, Rust (latest).
+- **System Libraries**:
+    - `ffmpeg` (Required for video/audio processing).
+      - **Linux**: `sudo apt install ffmpeg`
+      - **Windows**: `winget install ffmpeg` (via PowerShell) or download from [ffmpeg.org](https://ffmpeg.org/download.html).
+    - `webview2-com-gtk-4.0` (Linux Tauri requirement).
 
 ## 3. High-Level Architecture
 
@@ -59,13 +69,13 @@ graph TD
 ### 4.3 Agentic Layer (MCP)
 The system uses the Model Context Protocol (MCP) to standardize tool usage.
 - **Key Models (Optimized for Intel iGPU / 8GB RAM)**:
-  - **Chat/Reasoning**: `microsoft/Phi-3-mini-4k-instruct` (OpenVINO INT4). Small, capable reasoning model.
-  - **Transcription**: `openai/whisper-small` (OpenVINO INT8). Fast and accurate.
-  - **Vision**: `HuggingFaceM4/SmolVLM-Instruct` (OpenVINO INT4) or `Florence-2-large` (OpenVINO). specialized for visual understanding with low vRAM.
+  - **Chat/Reasoning**: `OpenVINO/Phi-3-mini-4k-instruct-int4-ov`. Optimized for Intel iGPU (INT4).
+  - **Memory Strategy**: Models are lazy-loaded. Video models (Whisper/Vision) unload immediately after processing. Chat model loads on first use and stays resident for responsiveness.
+  - **Vision**: `HuggingFaceM4/SmolVLM-Instruct` (To optimized using `optimum-intel` to OpenVINO INT4). specialized for visual understanding with low vRAM.
   
 - **MCP Servers**:
   - **Audio Server**: Exposes `transcribe_video` (Whisper).
-  - **Vision Server**: Exposes `analyze_frames` (SmolVLM/Florence-2).
+  - **Vision Server**: Exposes `analyze_frames` (SmolVLM).
   - **Memory Server (Vector DB)**: Exposes `search_knowledge_context` (ChromaDB).
   - **Document Server**: Exposes `create_pdf`, `create_ppt`.
 
@@ -81,7 +91,8 @@ The system uses the Model Context Protocol (MCP) to standardize tool usage.
 - **Language**: Python 3.10+
 - **Inference Engine**: `optimum-intel` + `openvino` + `nncf` (Intel iGPU acceleration).
 - **Vector Store**: `chromadb` (Lightweight, local, file-based persistence).
-- **Dependencies**: `grpcio`, `mcp`, `opencv-python`, `moviepy`, `fpdf`, `python-pptx`, `transformers`, `torch`.
+- **Dependencies**: `grpcio`, `mcp`, `opencv-python`, `imageio-ffmpeg` (Private binary), `soundfile`, `fpdf`, `python-pptx`, `transformers`, `torch`.
+
 
 ## 6. Data Flow
 1. **User Upload**: User selects a video.
@@ -110,5 +121,4 @@ The system uses the Model Context Protocol (MCP) to standardize tool usage.
 - **YouTube Integration**: Direct URL download and processing.
 - **Voice Mode**: Real-time STT and TTS for a hands-free experience.
 - **Multi-Video RAG**: Query across a library of videos, not just the active one.
-- **Plugin System**: Allow community users to add new MCP servers (e.g., Calendar integration).
 - **Timeline Search**: "Find the exact second where X happened" -> Clickable timestamp in chat.

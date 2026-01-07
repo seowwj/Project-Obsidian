@@ -20,7 +20,12 @@ export const uploadVideo = (filePath: string): Promise<string> => {
         console.error("Upload error:", err);
         reject(err.message);
       } else {
-        resolve(response.getVideoId());
+        const status = response.getStatus();
+        if (status && status.startsWith("error")) {
+          reject(status);
+        } else {
+          resolve(response.getVideoId());
+        }
       }
     });
   });
