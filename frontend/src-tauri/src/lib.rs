@@ -1,6 +1,12 @@
+#[tauri::command]
+fn get_username() -> String {
+    whoami::realname()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![get_username])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

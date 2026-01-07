@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Fixed
+- **Video Deduplication**: Implemented SHA-256 hashing for uploads. Existing videos (by content) are detected, and their ID is returned immediately, preventing re-processing and DB duplication. Added `video_hash` column to `videos` table.
+- **Scoped Retrieval**: Updated vector search to strictly filter by `video_id`, determining the context window solely by the active video.
+- **Chat-First UI Overhaul**:
+    - Replaced blocking "Upload" screen with an always-available Chat Interface.
+    - Implemented a collapsible Sidebar and Main Layout.
+    - Added "Gemini-style" empty state with shortcut chips (e.g., "Analyze a video") and a personalized "Hello, [Name]" greeting.
+    - Integrated `whoami` crate in Tauri backend to fetch the system's Real Name for the greeting.
+    - Added a `(+)` menu for media actions (Video, Image, Audio) directly in the input bar.
+- **Code Cleanup**: Removed legacy `VideoUpload.tsx` component as upload logic is now integrated into `ChatArea.tsx`.
+
+### Fixed
 - **Environment**: Added `tauri` script to `package.json` to fix `npm run tauri dev` error.
 - **Backend Server**: Refactored `server.py` to use `sonora.asgi` and `uvicorn`, resolving `ImportError: cannot import name 'SonoraWeb'`.
 - **System Dependencies**: Installed missing Rust toolchain and Linux system libraries (`libwebkit2gtk-4.1-dev`, etc.) to fix Tauri build linker errors.
