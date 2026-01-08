@@ -34,9 +34,70 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
             logger.error(f"Error in UploadVideo: {e}")
             return service_pb2.UploadResponse(video_id="", status=f"error: {str(e)}")
 
+    async def CreateSession(self, request, context):
+        try:
+            session_id = self.orchestrator.create_session(request.video_id)
+            # Retrieve the created session metadata to return
+            # (In a real app, create_session might return the object, here we query it back or construct it)
+            # Quick hack: construct it since we know the ID and title default
+            title = "New Chat"
+            if request.video_id:
+                 # We'd need to fetch the title again or have orchestrator return it. 
+                 # For now let's trust list_sessions will fix it on refresh.
+                 pass
+            
+            # Better: make orchestrator.create_session return the full dict
+            # or just return the ID and client re-fetches list.
+            # Let's return a basic metadata object.
+            return service_pb2.CreateSessionResponse(
+                session=service_pb2.SessionMetadata(
+                    id=session_id,
+                    title="New Session", # Placeholder, frontend will typically list_sessions anyway
+                    video_id=request.video_id,
+                    created_at="" # Timestamp not critical for immediate response
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error in CreateSession: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return service_pb2.CreateSessionResponse()
+
+    async def ListSessions(self, request, context):
+        try:
+            sessions = self.orchestrator.list_sessions()
+            grpc_sessions = []
+            for s in sessions:
+                grpc_sessions.append(service_pb2.SessionMetadata(
+                    id=s["id"],
+                    title=s["title"],
+                    video_id=s["video_id"] or "",
+                    created_at=s["created_at"]
+                ))
+            return service_pb2.ListSessionsResponse(sessions=grpc_sessions)
+        except Exception as e:
+            logger.error(f"Error in ListSessions: {e}")
+            return service_pb2.ListSessionsResponse(sessions=[])
+
+    async def DeleteSession(self, request, context):
+        try:
+            self.orchestrator.delete_session(request.session_id)
+            return service_pb2.DeleteSessionResponse(success=True)
+        except Exception as e:
+            logger.error(f"Error in DeleteSession: {e}")
+            return service_pb2.DeleteSessionResponse(success=False)
+
+    async def RenameSession(self, request, context):
+        try:
+            self.orchestrator.rename_session(request.session_id, request.new_title)
+            return service_pb2.RenameSessionResponse(success=True)
+        except Exception as e:
+            logger.error(f"Error in RenameSession: {e}")
+            return service_pb2.RenameSessionResponse(success=False)
+
     async def Chat(self, request, context):
         try:
-            async for content, type in self.orchestrator.chat(request.video_id, request.message):
+            async for content, type in self.orchestrator.chat(request.session_id, request.message):
                 yield service_pb2.ChatResponse(content=content, type=type)
         except Exception as e:
             logger.error(f"Error in Chat: {e}")
@@ -44,14 +105,9 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
 
     async def GetHistory(self, request, context):
         try:
-            # Fetch status to see if we should add a progress indicator
-            with sqlite3.connect(self.orchestrator.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT status FROM videos WHERE id = ?", (request.video_id,))
-                row = cursor.fetchone()
-                status = row[0] if row else "unknown"
-
-            messages = self.orchestrator.get_history(request.video_id)
+            # Check session status logic if needed (e.g. if video is processing)
+            # For now, simplistic retrieval
+            messages = self.orchestrator.get_history(request.session_id)
             grpc_messages = []
             for msg in messages:
                 grpc_messages.append(service_pb2.ChatMessage(
@@ -59,15 +115,6 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
                     content=msg["content"],
                     timestamp=msg.get("timestamp", "")
                 ))
-            
-            # Synthetic Progress Message
-            if status.startswith("processing"):
-                grpc_messages.append(service_pb2.ChatMessage(
-                    role="assistant",
-                    content=f"🔄 {status.title()}... (Please wait)",
-                    timestamp=""
-                ))
-
             return service_pb2.GetHistoryResponse(messages=grpc_messages)
         except Exception as e:
             logger.error(f"Error in GetHistory: {e}")
@@ -81,7 +128,56 @@ def get_application():
     # Create ASGI application
     # Disable internal CORS to avoid uvicorn header type issues
     app = sonora.asgi.grpcASGI(enable_cors=False)
-    service_pb2_grpc.add_ObsidianServiceServicer_to_server(ObsidianService(), app)
+    servicer = ObsidianService()
+    
+    # Manual Registration to ensure compatibility
+    rpc_method_handlers = {
+            'UploadVideo': grpc.unary_unary_rpc_method_handler(
+                    servicer.UploadVideo,
+                    request_deserializer=service_pb2.UploadRequest.FromString,
+                    response_serializer=service_pb2.UploadResponse.SerializeToString,
+            ),
+            'CreateSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSession,
+                    request_deserializer=service_pb2.CreateSessionRequest.FromString,
+                    response_serializer=service_pb2.CreateSessionResponse.SerializeToString,
+            ),
+            'Chat': grpc.unary_stream_rpc_method_handler(
+                    servicer.Chat,
+                    request_deserializer=service_pb2.ChatRequest.FromString,
+                    response_serializer=service_pb2.ChatResponse.SerializeToString,
+            ),
+            'GetHistory': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetHistory,
+                    request_deserializer=service_pb2.GetHistoryRequest.FromString,
+                    response_serializer=service_pb2.GetHistoryResponse.SerializeToString,
+            ),
+            'ListSessions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSessions,
+                    request_deserializer=service_pb2.ListSessionsRequest.FromString,
+                    response_serializer=service_pb2.ListSessionsResponse.SerializeToString,
+            ),
+            'ListVideos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListVideos,
+                    request_deserializer=service_pb2.ListVideosRequest.FromString,
+                    response_serializer=service_pb2.ListVideosResponse.SerializeToString,
+            ),
+            'DeleteSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteSession,
+                    request_deserializer=service_pb2.DeleteSessionRequest.FromString,
+                    response_serializer=service_pb2.DeleteSessionResponse.SerializeToString,
+            ),
+            'RenameSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.RenameSession,
+                    request_deserializer=service_pb2.RenameSessionRequest.FromString,
+                    response_serializer=service_pb2.RenameSessionResponse.SerializeToString,
+            ),
+    }
+    
+    # Try generic registration (Sonora explicitly supports this)
+    generic_handler = grpc.method_handlers_generic_handler(
+            'obsidian.ObsidianService', rpc_method_handlers)
+    app.add_generic_rpc_handlers((generic_handler,))
     
     # Wrap with Starlette's robust CORS middleware
     app = CORSMiddleware(

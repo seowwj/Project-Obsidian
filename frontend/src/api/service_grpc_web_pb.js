@@ -19,10 +19,19 @@
 const grpc = {};
 grpc.web = require('grpc-web');
 
+let messages = require('./service_pb.js');
+
+// Determine global scope safely
+const globalScope = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : null));
+
+// Fallback logic: If require didn't give us named exports, check the global 'proto.obsidian'
+if ((!messages || !messages.UploadRequest) && globalScope && globalScope.proto && globalScope.proto.obsidian) {
+  messages = globalScope.proto.obsidian;
+}
+
+// Local proto object for constructing the service client export
 const proto = {};
-require('./service_pb.js');
-// Fallback to global namespace populated by service_pb.js
-proto.obsidian = window.proto.obsidian;
+proto.obsidian = {};
 
 /**
  * @param {string} hostname
@@ -85,8 +94,8 @@ proto.obsidian.ObsidianServicePromiseClient =
 const methodDescriptor_ObsidianService_UploadVideo = new grpc.web.MethodDescriptor(
   '/obsidian.ObsidianService/UploadVideo',
   grpc.web.MethodType.UNARY,
-  proto.obsidian.UploadRequest,
-  proto.obsidian.UploadResponse,
+  messages.UploadRequest,
+  messages.UploadResponse,
   /**
    * @param {!proto.obsidian.UploadRequest} request
    * @return {!Uint8Array}
@@ -94,7 +103,7 @@ const methodDescriptor_ObsidianService_UploadVideo = new grpc.web.MethodDescript
   function (request) {
     return request.serializeBinary();
   },
-  proto.obsidian.UploadResponse.deserializeBinary
+  messages.UploadResponse.deserializeBinary
 );
 
 
@@ -140,14 +149,75 @@ proto.obsidian.ObsidianServicePromiseClient.prototype.uploadVideo =
 /**
  * @const
  * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.CreateSessionRequest,
+ *   !proto.obsidian.CreateSessionResponse>}
+ */
+const methodDescriptor_ObsidianService_CreateSession = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/CreateSession',
+  grpc.web.MethodType.UNARY,
+  messages.CreateSessionRequest,
+  messages.CreateSessionResponse,
+  /**
+   * @param {!proto.obsidian.CreateSessionRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.CreateSessionResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.obsidian.CreateSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.CreateSessionResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.CreateSessionResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.createSession =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/CreateSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_CreateSession,
+      callback);
+  };
+
+
+/**
+ * @param {!proto.obsidian.CreateSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.CreateSessionResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.createSession =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/CreateSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_CreateSession);
+  };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
  *   !proto.obsidian.ChatRequest,
  *   !proto.obsidian.ChatResponse>}
  */
 const methodDescriptor_ObsidianService_Chat = new grpc.web.MethodDescriptor(
   '/obsidian.ObsidianService/Chat',
   grpc.web.MethodType.SERVER_STREAMING,
-  proto.obsidian.ChatRequest,
-  proto.obsidian.ChatResponse,
+  messages.ChatRequest,
+  messages.ChatResponse,
   /**
    * @param {!proto.obsidian.ChatRequest} request
    * @return {!Uint8Array}
@@ -155,7 +225,7 @@ const methodDescriptor_ObsidianService_Chat = new grpc.web.MethodDescriptor(
   function (request) {
     return request.serializeBinary();
   },
-  proto.obsidian.ChatResponse.deserializeBinary
+  messages.ChatResponse.deserializeBinary
 );
 
 
@@ -202,8 +272,8 @@ proto.obsidian.ObsidianServicePromiseClient.prototype.chat =
 const methodDescriptor_ObsidianService_GetHistory = new grpc.web.MethodDescriptor(
   '/obsidian.ObsidianService/GetHistory',
   grpc.web.MethodType.UNARY,
-  proto.obsidian.GetHistoryRequest,
-  proto.obsidian.GetHistoryResponse,
+  messages.GetHistoryRequest,
+  messages.GetHistoryResponse,
   /**
    * @param {!proto.obsidian.GetHistoryRequest} request
    * @return {!Uint8Array}
@@ -211,7 +281,7 @@ const methodDescriptor_ObsidianService_GetHistory = new grpc.web.MethodDescripto
   function (request) {
     return request.serializeBinary();
   },
-  proto.obsidian.GetHistoryResponse.deserializeBinary
+  messages.GetHistoryResponse.deserializeBinary
 );
 
 
@@ -254,5 +324,248 @@ proto.obsidian.ObsidianServicePromiseClient.prototype.getHistory =
   };
 
 
-module.exports = proto.obsidian;
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.ListSessionsRequest,
+ *   !proto.obsidian.ListSessionsResponse>}
+ */
+const methodDescriptor_ObsidianService_ListSessions = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/ListSessions',
+  grpc.web.MethodType.UNARY,
+  messages.ListSessionsRequest,
+  messages.ListSessionsResponse,
+  /**
+   * @param {!proto.obsidian.ListSessionsRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.ListSessionsResponse.deserializeBinary
+);
 
+
+/**
+ * @param {!proto.obsidian.ListSessionsRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.ListSessionsResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.ListSessionsResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.listSessions =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/ListSessions',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_ListSessions,
+      callback);
+  };
+
+
+/**
+ * @param {!proto.obsidian.ListSessionsRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.ListSessionsResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.listSessions =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/ListSessions',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_ListSessions);
+  };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.ListVideosRequest,
+ *   !proto.obsidian.ListVideosResponse>}
+ */
+const methodDescriptor_ObsidianService_ListVideos = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/ListVideos',
+  grpc.web.MethodType.UNARY,
+  messages.ListVideosRequest,
+  messages.ListVideosResponse,
+  /**
+   * @param {!proto.obsidian.ListVideosRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.ListVideosResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.obsidian.ListVideosRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.ListVideosResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.ListVideosResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.listVideos =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/ListVideos',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_ListVideos,
+      callback);
+  };
+
+
+/**
+ * @param {!proto.obsidian.ListVideosRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.ListVideosResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.listVideos =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/ListVideos',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_ListVideos);
+  };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.DeleteSessionRequest,
+ *   !proto.obsidian.DeleteSessionResponse>}
+ */
+const methodDescriptor_ObsidianService_DeleteSession = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/DeleteSession',
+  grpc.web.MethodType.UNARY,
+  messages.DeleteSessionRequest,
+  messages.DeleteSessionResponse,
+  /**
+   * @param {!proto.obsidian.DeleteSessionRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.DeleteSessionResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.obsidian.DeleteSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.DeleteSessionResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.DeleteSessionResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.deleteSession =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/DeleteSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_DeleteSession,
+      callback);
+  };
+
+
+/**
+ * @param {!proto.obsidian.DeleteSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.DeleteSessionResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.deleteSession =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/DeleteSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_DeleteSession);
+  };
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.RenameSessionRequest,
+ *   !proto.obsidian.RenameSessionResponse>}
+ */
+const methodDescriptor_ObsidianService_RenameSession = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/RenameSession',
+  grpc.web.MethodType.UNARY,
+  messages.RenameSessionRequest,
+  messages.RenameSessionResponse,
+  /**
+   * @param {!proto.obsidian.RenameSessionRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.RenameSessionResponse.deserializeBinary
+);
+
+
+/**
+ * @param {!proto.obsidian.RenameSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.RenameSessionResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.RenameSessionResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.renameSession =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/RenameSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_RenameSession,
+      callback);
+  };
+
+
+/**
+ * @param {!proto.obsidian.RenameSessionRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.RenameSessionResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.renameSession =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/RenameSession',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_RenameSession);
+  };
+
+
+module.exports = proto.obsidian;

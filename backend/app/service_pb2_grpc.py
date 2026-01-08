@@ -39,6 +39,11 @@ class ObsidianServiceStub(object):
                 request_serializer=service__pb2.UploadRequest.SerializeToString,
                 response_deserializer=service__pb2.UploadResponse.FromString,
                 _registered_method=True)
+        self.CreateSession = channel.unary_unary(
+                '/obsidian.ObsidianService/CreateSession',
+                request_serializer=service__pb2.CreateSessionRequest.SerializeToString,
+                response_deserializer=service__pb2.CreateSessionResponse.FromString,
+                _registered_method=True)
         self.Chat = channel.unary_stream(
                 '/obsidian.ObsidianService/Chat',
                 request_serializer=service__pb2.ChatRequest.SerializeToString,
@@ -48,6 +53,26 @@ class ObsidianServiceStub(object):
                 '/obsidian.ObsidianService/GetHistory',
                 request_serializer=service__pb2.GetHistoryRequest.SerializeToString,
                 response_deserializer=service__pb2.GetHistoryResponse.FromString,
+                _registered_method=True)
+        self.ListSessions = channel.unary_unary(
+                '/obsidian.ObsidianService/ListSessions',
+                request_serializer=service__pb2.ListSessionsRequest.SerializeToString,
+                response_deserializer=service__pb2.ListSessionsResponse.FromString,
+                _registered_method=True)
+        self.ListVideos = channel.unary_unary(
+                '/obsidian.ObsidianService/ListVideos',
+                request_serializer=service__pb2.ListVideosRequest.SerializeToString,
+                response_deserializer=service__pb2.ListVideosResponse.FromString,
+                _registered_method=True)
+        self.DeleteSession = channel.unary_unary(
+                '/obsidian.ObsidianService/DeleteSession',
+                request_serializer=service__pb2.DeleteSessionRequest.SerializeToString,
+                response_deserializer=service__pb2.DeleteSessionResponse.FromString,
+                _registered_method=True)
+        self.RenameSession = channel.unary_unary(
+                '/obsidian.ObsidianService/RenameSession',
+                request_serializer=service__pb2.RenameSessionRequest.SerializeToString,
+                response_deserializer=service__pb2.RenameSessionResponse.FromString,
                 _registered_method=True)
 
 
@@ -61,6 +86,13 @@ class ObsidianServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreateSession(self, request, context):
+        """Creates a new chat session (optionally linked to a video).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Chat(self, request, context):
         """Sends a chat message and receives a streaming response.
         """
@@ -69,7 +101,35 @@ class ObsidianServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetHistory(self, request, context):
-        """Retrieves chat history.
+        """Retrieves chat history for a session.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListSessions(self, request, context):
+        """List all sessions.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListVideos(self, request, context):
+        """List all uploaded videos (Legacy/Management).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteSession(self, request, context):
+        """Delete a session.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RenameSession(self, request, context):
+        """Rename a session.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -83,6 +143,11 @@ def add_ObsidianServiceServicer_to_server(servicer, server):
                     request_deserializer=service__pb2.UploadRequest.FromString,
                     response_serializer=service__pb2.UploadResponse.SerializeToString,
             ),
+            'CreateSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateSession,
+                    request_deserializer=service__pb2.CreateSessionRequest.FromString,
+                    response_serializer=service__pb2.CreateSessionResponse.SerializeToString,
+            ),
             'Chat': grpc.unary_stream_rpc_method_handler(
                     servicer.Chat,
                     request_deserializer=service__pb2.ChatRequest.FromString,
@@ -92,6 +157,26 @@ def add_ObsidianServiceServicer_to_server(servicer, server):
                     servicer.GetHistory,
                     request_deserializer=service__pb2.GetHistoryRequest.FromString,
                     response_serializer=service__pb2.GetHistoryResponse.SerializeToString,
+            ),
+            'ListSessions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSessions,
+                    request_deserializer=service__pb2.ListSessionsRequest.FromString,
+                    response_serializer=service__pb2.ListSessionsResponse.SerializeToString,
+            ),
+            'ListVideos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListVideos,
+                    request_deserializer=service__pb2.ListVideosRequest.FromString,
+                    response_serializer=service__pb2.ListVideosResponse.SerializeToString,
+            ),
+            'DeleteSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteSession,
+                    request_deserializer=service__pb2.DeleteSessionRequest.FromString,
+                    response_serializer=service__pb2.DeleteSessionResponse.SerializeToString,
+            ),
+            'RenameSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.RenameSession,
+                    request_deserializer=service__pb2.RenameSessionRequest.FromString,
+                    response_serializer=service__pb2.RenameSessionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -121,6 +206,33 @@ class ObsidianService(object):
             '/obsidian.ObsidianService/UploadVideo',
             service__pb2.UploadRequest.SerializeToString,
             service__pb2.UploadResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/CreateSession',
+            service__pb2.CreateSessionRequest.SerializeToString,
+            service__pb2.CreateSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -175,6 +287,114 @@ class ObsidianService(object):
             '/obsidian.ObsidianService/GetHistory',
             service__pb2.GetHistoryRequest.SerializeToString,
             service__pb2.GetHistoryResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListSessions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/ListSessions',
+            service__pb2.ListSessionsRequest.SerializeToString,
+            service__pb2.ListSessionsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListVideos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/ListVideos',
+            service__pb2.ListVideosRequest.SerializeToString,
+            service__pb2.ListVideosResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/DeleteSession',
+            service__pb2.DeleteSessionRequest.SerializeToString,
+            service__pb2.DeleteSessionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RenameSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/RenameSession',
+            service__pb2.RenameSessionRequest.SerializeToString,
+            service__pb2.RenameSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,

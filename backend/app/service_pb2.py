@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rservice.proto\x12\x08obsidian\"\"\n\rUploadRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"2\n\x0eUploadResponse\x12\x10\n\x08video_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\"0\n\x0b\x43hatRequest\x12\x10\n\x08video_id\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"-\n\x0c\x43hatResponse\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"%\n\x11GetHistoryRequest\x12\x10\n\x08video_id\x18\x01 \x01(\t\"=\n\x12GetHistoryResponse\x12\'\n\x08messages\x18\x01 \x03(\x0b\x32\x15.obsidian.ChatMessage\"?\n\x0b\x43hatMessage\x12\x0c\n\x04role\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t2\xdb\x01\n\x0fObsidianService\x12\x42\n\x0bUploadVideo\x12\x17.obsidian.UploadRequest\x1a\x18.obsidian.UploadResponse\"\x00\x12\x39\n\x04\x43hat\x12\x15.obsidian.ChatRequest\x1a\x16.obsidian.ChatResponse\"\x00\x30\x01\x12I\n\nGetHistory\x12\x1b.obsidian.GetHistoryRequest\x1a\x1c.obsidian.GetHistoryResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rservice.proto\x12\x08obsidian\"\"\n\rUploadRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"2\n\x0eUploadResponse\x12\x10\n\x08video_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\"(\n\x14\x43reateSessionRequest\x12\x10\n\x08video_id\x18\x01 \x01(\t\"C\n\x15\x43reateSessionResponse\x12*\n\x07session\x18\x01 \x01(\x0b\x32\x19.obsidian.SessionMetadata\"2\n\x0b\x43hatRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"-\n\x0c\x43hatResponse\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"\'\n\x11GetHistoryRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\"=\n\x12GetHistoryResponse\x12\'\n\x08messages\x18\x01 \x03(\x0b\x32\x15.obsidian.ChatMessage\"?\n\x0b\x43hatMessage\x12\x0c\n\x04role\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t\"\x15\n\x13ListSessionsRequest\"C\n\x14ListSessionsResponse\x12+\n\x08sessions\x18\x01 \x03(\x0b\x32\x19.obsidian.SessionMetadata\"R\n\x0fSessionMetadata\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05title\x18\x02 \x01(\t\x12\x10\n\x08video_id\x18\x03 \x01(\t\x12\x12\n\ncreated_at\x18\x04 \x01(\t\"\x13\n\x11ListVideosRequest\"=\n\x12ListVideosResponse\x12\'\n\x06videos\x18\x01 \x03(\x0b\x32\x17.obsidian.VideoMetadata\"*\n\x14\x44\x65leteSessionRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\"(\n\x15\x44\x65leteSessionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"=\n\x14RenameSessionRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x11\n\tnew_title\x18\x02 \x01(\t\"(\n\x15RenameSessionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"M\n\rVideoMetadata\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x12\n\ncreated_at\x18\x04 \x01(\t2\xf3\x04\n\x0fObsidianService\x12\x42\n\x0bUploadVideo\x12\x17.obsidian.UploadRequest\x1a\x18.obsidian.UploadResponse\"\x00\x12R\n\rCreateSession\x12\x1e.obsidian.CreateSessionRequest\x1a\x1f.obsidian.CreateSessionResponse\"\x00\x12\x39\n\x04\x43hat\x12\x15.obsidian.ChatRequest\x1a\x16.obsidian.ChatResponse\"\x00\x30\x01\x12I\n\nGetHistory\x12\x1b.obsidian.GetHistoryRequest\x1a\x1c.obsidian.GetHistoryResponse\"\x00\x12O\n\x0cListSessions\x12\x1d.obsidian.ListSessionsRequest\x1a\x1e.obsidian.ListSessionsResponse\"\x00\x12I\n\nListVideos\x12\x1b.obsidian.ListVideosRequest\x1a\x1c.obsidian.ListVideosResponse\"\x00\x12R\n\rDeleteSession\x12\x1e.obsidian.DeleteSessionRequest\x1a\x1f.obsidian.DeleteSessionResponse\"\x00\x12R\n\rRenameSession\x12\x1e.obsidian.RenameSessionRequest\x1a\x1f.obsidian.RenameSessionResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,16 +35,40 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPLOADREQUEST']._serialized_end=61
   _globals['_UPLOADRESPONSE']._serialized_start=63
   _globals['_UPLOADRESPONSE']._serialized_end=113
-  _globals['_CHATREQUEST']._serialized_start=115
-  _globals['_CHATREQUEST']._serialized_end=163
-  _globals['_CHATRESPONSE']._serialized_start=165
-  _globals['_CHATRESPONSE']._serialized_end=210
-  _globals['_GETHISTORYREQUEST']._serialized_start=212
-  _globals['_GETHISTORYREQUEST']._serialized_end=249
-  _globals['_GETHISTORYRESPONSE']._serialized_start=251
-  _globals['_GETHISTORYRESPONSE']._serialized_end=312
-  _globals['_CHATMESSAGE']._serialized_start=314
-  _globals['_CHATMESSAGE']._serialized_end=377
-  _globals['_OBSIDIANSERVICE']._serialized_start=380
-  _globals['_OBSIDIANSERVICE']._serialized_end=599
+  _globals['_CREATESESSIONREQUEST']._serialized_start=115
+  _globals['_CREATESESSIONREQUEST']._serialized_end=155
+  _globals['_CREATESESSIONRESPONSE']._serialized_start=157
+  _globals['_CREATESESSIONRESPONSE']._serialized_end=224
+  _globals['_CHATREQUEST']._serialized_start=226
+  _globals['_CHATREQUEST']._serialized_end=276
+  _globals['_CHATRESPONSE']._serialized_start=278
+  _globals['_CHATRESPONSE']._serialized_end=323
+  _globals['_GETHISTORYREQUEST']._serialized_start=325
+  _globals['_GETHISTORYREQUEST']._serialized_end=364
+  _globals['_GETHISTORYRESPONSE']._serialized_start=366
+  _globals['_GETHISTORYRESPONSE']._serialized_end=427
+  _globals['_CHATMESSAGE']._serialized_start=429
+  _globals['_CHATMESSAGE']._serialized_end=492
+  _globals['_LISTSESSIONSREQUEST']._serialized_start=494
+  _globals['_LISTSESSIONSREQUEST']._serialized_end=515
+  _globals['_LISTSESSIONSRESPONSE']._serialized_start=517
+  _globals['_LISTSESSIONSRESPONSE']._serialized_end=584
+  _globals['_SESSIONMETADATA']._serialized_start=586
+  _globals['_SESSIONMETADATA']._serialized_end=668
+  _globals['_LISTVIDEOSREQUEST']._serialized_start=670
+  _globals['_LISTVIDEOSREQUEST']._serialized_end=689
+  _globals['_LISTVIDEOSRESPONSE']._serialized_start=691
+  _globals['_LISTVIDEOSRESPONSE']._serialized_end=752
+  _globals['_DELETESESSIONREQUEST']._serialized_start=754
+  _globals['_DELETESESSIONREQUEST']._serialized_end=796
+  _globals['_DELETESESSIONRESPONSE']._serialized_start=798
+  _globals['_DELETESESSIONRESPONSE']._serialized_end=838
+  _globals['_RENAMESESSIONREQUEST']._serialized_start=840
+  _globals['_RENAMESESSIONREQUEST']._serialized_end=901
+  _globals['_RENAMESESSIONRESPONSE']._serialized_start=903
+  _globals['_RENAMESESSIONRESPONSE']._serialized_end=943
+  _globals['_VIDEOMETADATA']._serialized_start=945
+  _globals['_VIDEOMETADATA']._serialized_end=1022
+  _globals['_OBSIDIANSERVICE']._serialized_start=1025
+  _globals['_OBSIDIANSERVICE']._serialized_end=1652
 # @@protoc_insertion_point(module_scope)

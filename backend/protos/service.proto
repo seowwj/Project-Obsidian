@@ -6,11 +6,26 @@ service ObsidianService {
   // Uploads a video for processing. Returns the video ID.
   rpc UploadVideo (UploadRequest) returns (UploadResponse) {}
 
+  // Creates a new chat session (optionally linked to a video).
+  rpc CreateSession (CreateSessionRequest) returns (CreateSessionResponse) {}
+
   // Sends a chat message and receives a streaming response.
   rpc Chat (ChatRequest) returns (stream ChatResponse) {}
 
-  // Retrieves chat history.
+  // Retrieves chat history for a session.
   rpc GetHistory (GetHistoryRequest) returns (GetHistoryResponse) {}
+
+  // List all sessions.
+  rpc ListSessions (ListSessionsRequest) returns (ListSessionsResponse) {}
+
+  // List all uploaded videos (Legacy/Management).
+  rpc ListVideos (ListVideosRequest) returns (ListVideosResponse) {}
+
+  // Delete a session.
+  rpc DeleteSession (DeleteSessionRequest) returns (DeleteSessionResponse) {}
+
+  // Rename a session.
+  rpc RenameSession (RenameSessionRequest) returns (RenameSessionResponse) {}
 }
 
 message UploadRequest {
@@ -19,21 +34,29 @@ message UploadRequest {
 
 message UploadResponse {
   string video_id = 1;
-  string status = 2; // "processing", "ready", "error"
+  string status = 2;
+}
+
+message CreateSessionRequest {
+  string video_id = 1; // Optional. If empty, it's a text-only chat.
+}
+
+message CreateSessionResponse {
+  SessionMetadata session = 1;
 }
 
 message ChatRequest {
-  string video_id = 1;
+  string session_id = 1; // CHANGED: Now uses session_id
   string message = 2;
 }
 
 message ChatResponse {
-  string content = 1; // Chunk of text
-  string type = 2; // "text", "status", "error"
+  string content = 1;
+  string type = 2; 
 }
 
 message GetHistoryRequest {
-  string video_id = 1;
+  string session_id = 1; // CHANGED: Now uses session_id
 }
 
 message GetHistoryResponse {
@@ -41,7 +64,50 @@ message GetHistoryResponse {
 }
 
 message ChatMessage {
-  string role = 1; // "user", "assistant"
+  string role = 1;
   string content = 2;
   string timestamp = 3;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated SessionMetadata sessions = 1;
+}
+
+message SessionMetadata {
+  string id = 1;
+  string title = 2;
+  string video_id = 3; // Empty if text-only
+  string created_at = 4;
+}
+
+message ListVideosRequest {}
+
+message ListVideosResponse {
+  repeated VideoMetadata videos = 1;
+}
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionResponse {
+  bool success = 1;
+}
+
+message RenameSessionRequest {
+  string session_id = 1;
+  string new_title = 2;
+}
+
+message RenameSessionResponse {
+  bool success = 1;
+}
+
+message VideoMetadata {
+  string id = 1;
+  string path = 2;
+  string status = 3; 
+  string created_at = 4;
 }

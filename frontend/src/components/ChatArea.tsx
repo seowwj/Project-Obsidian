@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Video, Plus, Image as ImageIcon, AudioLines } from 'lucide-react';
-import { chatStream, uploadVideo } from '../api/client';
+import { Send, Bot, User, Sparkles, Video, Plus, Image as ImageIcon, AudioLines, MessageCircle } from 'lucide-react';
+import { sendMessage, uploadVideo, createSession } from '../api/client';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -10,7 +10,7 @@ interface Message {
 }
 
 interface ChatAreaProps {
-    videoId: string | null;
+    sessionId: string | null;
     onUploadSuccess: (vid: string) => void;
     onUploadError: (err: string) => void;
     messages: Message[];
@@ -18,20 +18,24 @@ interface ChatAreaProps {
     isStreaming: boolean;
     setIsStreaming: (streaming: boolean) => void;
     onToast: (msg: string, type: 'success' | 'error') => void;
+    refreshSessions: () => void;
+    onSessionChange: (id: string | null) => void;
 }
 
 export function ChatArea({
-    videoId,
+    sessionId,
     onUploadSuccess,
     onUploadError,
     messages,
     setMessages,
     isStreaming,
     setIsStreaming,
-    onToast
+    onToast,
+    refreshSessions,
+    onSessionChange
 }: ChatAreaProps) {
     const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false); // Local loading for upload
+    const [loading, setLoading] = useState(false);
     const [username, setUsername] = useState('there');
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +53,7 @@ export function ChatArea({
             .catch(console.error);
     }, []);
 
-    // Upload Logic (Refactored from VideoUpload)
+    // Upload Logic
     const handleUpload = async () => {
         try {
             const selected = await open({
@@ -65,7 +69,7 @@ export function ChatArea({
                 setLoading(true);
                 try {
                     const vid = await uploadVideo(path);
-                    onUploadSuccess(vid);
+                    onUploadSuccess(vid); // App will create session
                 } catch (err: any) {
                     console.error(err);
                     onUploadError(err.toString());
@@ -79,24 +83,22 @@ export function ChatArea({
         }
     };
 
-    const handleSend = (text: string = input) => {
+    const handleSend = async (text: string = input) => {
         const msgText = text.trim();
         if (!msgText) return;
 
-        if (!videoId) {
-            // Handle "Chatting without video"
-            // For now, we just prompt them to upload if they try to ask specific questions
-            // Or we can treat "Analyze" keywords as triggers
-            if (msgText.toLowerCase().includes('analyze') || msgText.toLowerCase().includes('upload')) {
-                handleUpload();
+        let currentSessionId = sessionId;
+
+        // If no session, create one (Text Only)
+        if (!currentSessionId) {
+            try {
+                currentSessionId = await createSession(null);
+                onSessionChange(currentSessionId);
+                refreshSessions();
+            } catch (e: any) {
+                onToast("Failed to start session: " + e.message, 'error');
                 return;
             }
-
-            // General echo for now
-            setMessages(prev => [...prev, { role: 'user', content: msgText }]);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Please upload a video first so I can help you analyze it! Click the + button or use the shortcuts above." }]);
-            setInput('');
-            return;
         }
 
         setInput('');
@@ -106,8 +108,9 @@ export function ChatArea({
         // Optimistic assistant message
         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-        chatStream(
-            videoId,
+        // Use new sendMessage API
+        sendMessage(
+            currentSessionId,
             msgText,
             (textChunk) => {
                 setMessages(prev => {
@@ -122,7 +125,6 @@ export function ChatArea({
                     return newHistory;
                 });
             },
-            () => setIsStreaming(false),
             (err) => {
                 setIsStreaming(false);
                 onToast("Chat error: " + err, 'error');
@@ -133,13 +135,10 @@ export function ChatArea({
     // Shortcut Chips
     const shortcuts = [
         { icon: <Video size={16} />, text: "Analyze a video", action: handleUpload },
-        // TODO: Re-enable these when we have backend support
-        // { icon: <MessageSquare size={16} />, text: "Summarize typical content", action: () => handleSend("What usually happens in these videos?") }, 
-        // { icon: <FileQuestion size={16} />, text: "Help me learn", action: () => handleSend("How does this tool work?") },
+        { icon: <MessageCircle size={16} />, text: "Just chat", action: () => handleSend("Hi!") },
     ];
 
-    // Helper to determine if we show the "Welcome" state
-    const showWelcome = !videoId && messages.length === 0;
+    const showWelcome = !sessionId && messages.length === 0;
 
     return (
         <div className="flex flex-col h-full relative">
@@ -149,7 +148,7 @@ export function ChatArea({
                 className="flex-1 overflow-y-auto px-4 py-6 space-y-6"
             >
                 {showWelcome ? (
-                    /* Empty State for Chat - Gemini Style */
+                    /* Empty State */
                     <div className="h-full flex flex-col items-center justify-center space-y-8 duration-700 delay-100">
                         <div className="text-center space-y-2">
                             <div className="inline-block p-1">
@@ -188,14 +187,7 @@ export function ChatArea({
                 ) : (
                     /* Chat History */
                     <div className="w-full max-w-3xl mx-auto space-y-6">
-                        {/* If we have a video but no messages yet, show a small "Ready" indicator */}
-                        {videoId && messages.length === 0 && (
-                            <div className="flex justify-center pb-4">
-                                <span className="text-xs font-medium text-gray-500 bg-gray-900/50 px-3 py-1 rounded-full border border-gray-800">
-                                    Video Context Loaded
-                                </span>
-                            </div>
-                        )}
+                        {/* No Header for Active Chat - Removed as requested */}
 
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
@@ -236,7 +228,7 @@ export function ChatArea({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                        placeholder={videoId ? "Ask something about the video..." : "Upload a video to start..."}
+                        placeholder={sessionId ? "Type a message..." : "Start a new chat..."}
                         disabled={loading || isStreaming}
                         className="w-full bg-gray-800/80 backdrop-blur-xl text-gray-100 rounded-2xl pl-12 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 border border-gray-700/50 shadow-xl transition-all"
                     />
@@ -249,13 +241,9 @@ export function ChatArea({
                     </button>
                 </div>
                 <div className="text-center mt-3 h-4">
-                    {isStreaming ? (
+                    {isStreaming && (
                         <span className="text-xs font-mono text-blue-400 animate-pulse">
                             Generating response...
-                        </span>
-                    ) : (
-                        <span className="text-[10px] text-gray-600">
-                            Obsidian AI can make mistakes. Verify important info.
                         </span>
                     )}
                 </div>

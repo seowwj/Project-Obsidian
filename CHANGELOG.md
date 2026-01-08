@@ -13,6 +13,13 @@
     - Added a `(+)` menu for media actions (Video, Image, Audio) directly in the input bar.
 - **Code Cleanup**: Removed legacy `VideoUpload.tsx` component as upload logic is now integrated into `ChatArea.tsx`.
 
+### Added
+- **Session Management**:
+    - **Backend**: Implemented `RenameSession` RPC and updated database to support session renaming.
+    - **Frontend API**: Updated `client.ts` to support `createSession`, `listSessions`, `deleteSession`, and `renameSession`.
+    - **Sidebar**: Added context menu (3 dots) to session items for **Rename** and **Delete** actions.
+- **Protobuf Patching**: Manually patched `service_pb.js` and `service_grpc_web_pb.js` to support new RPCs without full regeneration, fixing type errors and constructor issues.
+
 ### Fixed
 - **Environment**: Added `tauri` script to `package.json` to fix `npm run tauri dev` error.
 - **Backend Server**: Refactored `server.py` to use `sonora.asgi` and `uvicorn`, resolving `ImportError: cannot import name 'SonoraWeb'`.
