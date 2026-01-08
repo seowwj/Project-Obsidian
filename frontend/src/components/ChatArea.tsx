@@ -125,6 +125,9 @@ export function ChatArea({
                     return newHistory;
                 });
             },
+            () => {
+                setIsStreaming(false);
+            },
             (err) => {
                 setIsStreaming(false);
                 onToast("Chat error: " + err, 'error');

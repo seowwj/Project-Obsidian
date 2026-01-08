@@ -185,6 +185,25 @@ class AgentOrchestrator:
              context_str = "\n".join(documents)
              logger.info(f"Retrieved context for video {video_id}: {context_str}")
 
+        # 2.5 Retrieve Chat History (Last 6 messages)
+        history = []
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            # Fetch last 6 messages excluding the one we just added
+            cursor.execute(
+                "SELECT role, content FROM chat_history WHERE session_id = ? ORDER BY id DESC LIMIT 6 OFFSET 1",
+                (session_id,)
+            )
+            rows = cursor.fetchall()
+            # Reverse to Chronological Order
+            import re
+            for r in reversed(rows):
+                content = r[1]
+                # Remove <think>...</think> blocks
+                content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+                if content: # Only append if there is content left
+                    history.append({"role": r[0], "content": content})
+
         # 3. Generate Response
         response_text = ""
         
@@ -194,7 +213,7 @@ class AgentOrchestrator:
         # We can iterate over it directly if it launches its own thread (which we did implement).
         
         try:
-            stream_generator = self.generation_agent.generate_response_stream(context_str, message)
+            stream_generator = self.generation_agent.generate_response_stream(context_str, message, history=history)
             
             for chunk in stream_generator:
                 response_text += chunk

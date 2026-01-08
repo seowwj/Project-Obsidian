@@ -1,4 +1,5 @@
 import logging
+import json
 import torch
 import threading
 from transformers import AutoTokenizer, pipeline, TextIteratorStreamer
@@ -14,7 +15,8 @@ class GenerationAgent:
         """
         self.model_id = get_model_path("generation")
         # OpenVINO device: "GPU" for iGPU, "CPU" for fallback
-        self.device = "GPU" 
+        # self.device = "GPU" 
+        self.device = "CPU"     # Force set to CPU (Debugging)
         self.model = None
         self.tokenizer = None
         self.pipeline = None
@@ -46,9 +48,6 @@ class GenerationAgent:
             )
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
             
-            # We don't create a pipeline here for streaming, or we use it differently.
-            # Keeping pipeline for flexibility but for streaming we usually call model.generate directly.
-            # Actually pipeline supports streamer too.
             self.pipeline = pipeline(
                 "text-generation", 
                 model=self.model, 
@@ -82,7 +81,7 @@ class GenerationAgent:
             with self._lock:
                 self._is_loading = False
 
-    def generate_response_stream(self, context: str, user_query: str):
+    def generate_response_stream(self, context: str, user_query: str, history: list = None):
         """
         Generates a streaming response using Phi-3.
         Yields chunks of text.
@@ -91,13 +90,29 @@ class GenerationAgent:
             yield "Model is still loading... please wait."
             return
 
+        # Start with System Message
         messages = [
-            {"role": "system", "content": "You are a helpful AI assistant. Answer the user's question based ONLY on the provided Context. If the answer is not in the context, say you don't know."},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {user_query}"}
+            {"role": "system", "content": "You are a helpful, concise, and friendly assistant. Answer clearly and accurately, ask clarifying questions when needed, and avoid unnecessary verbosity."},
         ]
+
+        # Add History
+        if history:
+            messages.extend(history)
+
+        # Add User Query
+        if context and context.strip():
+            content = f"Context:\n{context}\n\nQuestion: {user_query}"
+        else:
+            content = user_query
+            
+        messages.append({"role": "user", "content": content})
         
+        print(f"DEBUG PROMPT: {json.dumps(messages, indent=2)}")
+        logger.info(f"Generating with messages: {json.dumps(messages, indent=2)}")
+
         input_text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        # Using TextIteratorStreamer
+        
+        # Using TextIteratorStreamer for streaming text
         streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
         
         generation_kwargs = dict(

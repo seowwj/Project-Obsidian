@@ -169,7 +169,7 @@ export const renameSession = (sessionId: string, newTitle: string): Promise<void
 
 // -- Chat & History --
 
-export const sendMessage = (sessionId: string, message: string, onMessage: (msg: string) => void, onError: (err: any) => void) => {
+export const sendMessage = (sessionId: string, message: string, onMessage: (msg: string) => void, onComplete: () => void, onError: (err: any) => void) => {
   try {
     const client = getClient();
     const req = new ChatRequest();
@@ -196,6 +196,8 @@ export const sendMessage = (sessionId: string, message: string, onMessage: (msg:
 
     stream.on('end', () => {
       // Stream ended
+      console.log("Stream ended");
+      onComplete();
     });
 
     return () => stream.cancel();

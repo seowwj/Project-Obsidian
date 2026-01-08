@@ -7,8 +7,8 @@ param (
     [Parameter(Mandatory = $true)]
     [string]$ModelName,
 
-    [string]$HfHome = "C:\models\HF_download",
-    [string]$OvDir = "C:\models\OV_compiled"
+    [string]$HfHome = "D:\models\HF_download",
+    [string]$OvDir = "D:\models\OV_compiled"
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,11 +55,11 @@ if ($IsPreOptimized) {
     Write-Host "Action: Direct Download using huggingface-cli"
     
     # Check for CLI tool
-    if (Get-Command "huggingface-cli" -ErrorAction SilentlyContinue) {
-        huggingface-cli download $ModelName --local-dir $ModelPath
+    if (Get-Command "hf" -ErrorAction SilentlyContinue) {
+        hf download $ModelName --local-dir $ModelPath
     }
     else {
-        Write-Error "huggingface-cli not found. Please install huggingface_hub[cli]."
+        Write-Error "hf command not found. Please install huggingface_hub[cli]."
     }
 }
 else {

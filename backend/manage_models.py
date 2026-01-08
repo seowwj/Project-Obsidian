@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 HF_TARGET_DIR = r"D:\models\HF_download"
 OV_TARGET_DIR = r"D:\models\OV_compiled"
 
-# CRITICAL: Set HF_HOME before importing transformers/optimum to ensure it takes effect
+# Set HF_HOME before importing transformers/optimum to ensure it takes effect
 os.environ["HF_HOME"] = HF_TARGET_DIR
 logger.info(f"Set HF_HOME to {HF_TARGET_DIR}")
 
