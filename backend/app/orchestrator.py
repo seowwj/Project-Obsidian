@@ -175,6 +175,14 @@ class AgentOrchestrator:
                 documents.append(text)
                 metadatas.append({"video_id": video_id, "type": "visual", "start": float(timestamp)})
             
+            # Clean up Vision Model to free resources
+            logger.info("Unloading Vision Agent to free memory...")
+            self.vision_agent.unload_model()
+            
+            # Pre-load Generation Model for Chat
+            logger.info("Pre-loading Generation Agent for chat...")
+            self.generation_agent.load_model()
+            
             # D. Index in Vector Store
             if documents:
                  self.vector_store.add_texts(documents, metadatas)
