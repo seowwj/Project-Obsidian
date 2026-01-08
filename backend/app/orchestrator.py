@@ -1,8 +1,8 @@
 import logging
+import os
 import sqlite3
 import json
 import asyncio
-import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -10,9 +10,6 @@ from .agents.video_processor import VideoProcessor
 from .agents.vector_store import VectorStore
 from .agents.vision_agent import VisionAgent
 from .agents.generation_agent import GenerationAgent
-
-# ... (imports)
-
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +22,7 @@ class AgentOrchestrator:
         # Initialize Agents
         self.video_processor = VideoProcessor(model_size="small")
         self.vector_store = VectorStore()
-        # Initialize Vision Agent (this downloads Florence-2 ~1GB)
         self.vision_agent = VisionAgent()
-        # Initialize Generation Agent
         self.generation_agent = GenerationAgent()
         
         # Executor for background tasks
@@ -93,7 +88,113 @@ class AgentOrchestrator:
 
             conn.commit()
 
-    # ... [keep _process_video_task, _update_status, _compute_file_hash, upload_video as is] ...
+    async def upload_video(self, file_path: str) -> str:
+        """
+        Uploads a video, checking for duplicates via hash.
+        Triggers background processing.
+        Returns video_id.
+        """
+        if not os.path.exists(file_path):
+             raise FileNotFoundError(f"File not found: {file_path}")
+
+        # 1. Compute Hash for Deduplication (Delegate to Video Processor)
+        file_hash = self.video_processor.compute_file_hash(file_path)
+        
+        # 2. Check DB
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, status FROM videos WHERE video_hash = ?", (file_hash,))
+            row = cursor.fetchone()
+            if row:
+                existing_id, status = row
+                if status and status.startswith("error"):
+                    logger.info(f"Video duplicate found (hash={file_hash}) but status is '{status}'. Re-processing...")
+                    # Update status and re-trigger
+                    self._update_status(existing_id, "processing")
+                    self.executor.submit(self._process_video_task, existing_id, file_path)
+                    return existing_id
+                
+                logger.info(f"Video duplicate found (hash={file_hash}, status={status}). Returning existing ID.")
+                return existing_id
+
+        # 3. Create New Record
+        video_id = f"vid_{int(datetime.now().timestamp())}"
+        created_at = datetime.now().isoformat()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO videos (id, path, video_hash, status, created_at) VALUES (?, ?, ?, ?, ?)",
+                (video_id, file_path, file_hash, "processing", created_at)
+            )
+            conn.commit()
+
+        # 4. Trigger Background Processing
+        # We use the executor to run the blocking processing task
+        self.executor.submit(self._process_video_task, video_id, file_path)
+        
+        return video_id
+
+    def _process_video_task(self, video_id: str, file_path: str):
+        """
+        Background task to process video:
+        - Transcribe (Whisper)
+        - Extract & Analyze Frames (SmolVLM)
+        - Index in Vector Store
+        """
+        logger.info(f"Starting background processing for {video_id}...")
+        try:
+            # A. Video Processing (Audio -> Text, Frames extract)
+            # This runs Whisper and extracts frames
+            result = self.video_processor.process_video(file_path, frame_interval=2)
+            transcription = result["transcription"]
+            frames = result["frames"]
+            
+            # Prepare Knowledge Base Documents
+            documents = []
+            metadatas = []
+            
+            # B. Add Transcription chunks
+            for segment in transcription.get("segments", []):
+                text = f"Timestamp {segment['start']:.1f}-{segment['end']:.1f}: {segment['text']}"
+                documents.append(text)
+                metadatas.append({"video_id": video_id, "type": "audio", "start": segment['start']})
+
+            # C. Vision Analysis on Frames
+            for i, frame_path in enumerate(frames):
+                # Analyze with Vision Agent
+                description = self.vision_agent.analyze_frame(frame_path)
+                
+                # Estimate timestamp roughly from filename or index
+                # frame_X.jpg where X is int(timestamp)
+                import re
+                match = re.search(r"frame_(\d+)", frame_path)
+                timestamp = int(match.group(1)) if match else i * 2
+                
+                text = f"Visual Frame at {timestamp}s: {description}"
+                documents.append(text)
+                metadatas.append({"video_id": video_id, "type": "visual", "start": float(timestamp)})
+            
+            # D. Index in Vector Store
+            if documents:
+                 self.vector_store.add_texts(documents, metadatas)
+                 logger.info(f"Successfully indexed {len(documents)} documents for video {video_id}.")
+            else:
+                 logger.warning(f"No documents were generated for video {video_id} (Transcription empty? No frames?).")
+            
+            # E. Update Status
+            self._update_status(video_id, "ready")
+            logger.info(f"Processing complete for {video_id}.")
+
+        except Exception as e:
+            logger.error(f"Processing failed for {video_id}: {e}")
+            self._update_status(video_id, f"error: {str(e)}")
+
+    def _update_status(self, video_id: str, status: str):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE videos SET status = ? WHERE id = ?", (status, video_id))
+            conn.commit()
 
     def create_session(self, video_id: str = None) -> str:
         """Creates a new chat session."""
@@ -164,26 +265,37 @@ class AgentOrchestrator:
         context_str = ""
         # 2. If Linked to Video, Check Status & Retrieve Context
         if video_id:
+             logger.info(f"Session {session_id} is linked to video {video_id}. Checking status...")
              with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT status FROM videos WHERE id = ?", (video_id,))
                 v_row = cursor.fetchone()
                 if v_row:
                     status = v_row[0]
+                    logger.info(f"Video {video_id} status: {status}")
                     if status == "processing":
                         yield "Video is still processing... I'll answer based on what I know so far.", "text"
                     elif status.startswith("error"):
                          yield f"Warning: Video processing had errors ({status}).", "error"
 
              # Retrieve Context
+             logger.info(f"Searching vector store for video {video_id} with query: {message}")
              results = self.vector_store.search(
                 message, 
                 n_results=5, 
                 where={"video_id": video_id}
              )
              documents = results['documents'][0] if results['documents'] else []
-             context_str = "\n".join(documents)
-             logger.info(f"Retrieved context for video {video_id}: {context_str}")
+             logger.info(f"Vector store returned {len(documents)} documents.")
+             
+             if documents:
+                 context_str = "\n".join(documents)
+                 logger.info(f"Context Sample: {context_str[:200]}...")
+             else:
+                 logger.warning(f"No context found for video {video_id}!")
+
+        else:
+             logger.info(f"Session {session_id} is NOT linked to any video.")
 
         # 2.5 Retrieve Chat History (Last 6 messages)
         history = []

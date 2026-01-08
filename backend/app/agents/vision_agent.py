@@ -1,5 +1,4 @@
 import logging
-import torch
 from PIL import Image
 from transformers import AutoProcessor
 from optimum.intel import OVModelForVisualCausalLM
@@ -15,10 +14,10 @@ class VisionAgent:
         """
         self.model_id = get_model_path("vision")
         # OpenVINO device: "GPU" for iGPU, "CPU" for fallback
-        self.device = "GPU"
+        # self.device = "GPU"
+        self.device = "CPU"
         self.model = None
         self.processor = None
-        self.mock_mode = False
 
     def load_model(self):
         """
@@ -32,7 +31,6 @@ class VisionAgent:
             # Load with OpenVINO optimization
             self.model = OVModelForVisualCausalLM.from_pretrained(
                 self.model_id,
-                export=True, 
                 device=self.device
             )
             self.processor = AutoProcessor.from_pretrained(self.model_id)
@@ -42,71 +40,93 @@ class VisionAgent:
             self.device = "CPU"
             self.model = OVModelForVisualCausalLM.from_pretrained(
                 self.model_id,
-                export=True, 
                 device=self.device
             )
             self.processor = AutoProcessor.from_pretrained(self.model_id)
             logger.info("Vision Model loaded successfully on OpenVINO.")
-            self.mock_mode = False
         except Exception as e:
-            logger.error(f"Failed to load Vision Model: {e}. Falling back to MOCK mode.")
-            self.mock_mode = True
+            logger.error(f"Failed to load Vision Model: {e}.")
 
     def analyze_frame(self, frame_path: str) -> str:
         """
         Analyzes a single image frame using SmolVLM2.
         """
-        if self.model is None and not self.mock_mode:
+        if self.model is None:
             self.load_model()
             
-        if self.mock_mode:
-            return "This is a mock description of the video frame."
-
         try:
             image = Image.open(frame_path)
             if image.mode != "RGB":
                 image = image.convert("RGB")
-
-            # Create message structure for SmolVLM2
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "image"},
-                        {"type": "text", "text": "Describe this image in detail."}
-                    ]
-                }
-            ]
             
-            # Prepare inputs
-            prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True)
-            inputs = self.processor(text=prompt, images=[image], return_tensors="pt")
-            # OpenVINO model handles inputs directly, no .to(device) needed usually if model call handles it,
-            # but usually inputs need to be on CPU for OV model.
-            inputs = inputs.to("cpu")
+            prompt = "Describe this image in detail."
 
-            # Generate
+            model_inputs = self.model.preprocess_inputs(
+                text=prompt,
+                image=image,
+                processor=self.processor
+            )
+
             generated_ids = self.model.generate(
-                **inputs,
+                **model_inputs,
                 max_new_tokens=256,
                 do_sample=False,
             )
-            
-            # Decode
+
             generated_texts = self.processor.batch_decode(
                 generated_ids,
                 skip_special_tokens=True,
             )
             
-            # The output usually contains the prompt, we need to extract the assistant response
-            # Note: batch_decode with skip_special_tokens might strip the role markers, making splitting hard.
-            # But usually newer transformers handle this. Let's return the full text for now or simple strip.
+            print(f"Generated text ----> {generated_texts}")
             response = generated_texts[0]
-            # Naive cleaning if prompt is included
-            if "Assistant:" in response:
-                response = response.split("Assistant:")[-1].strip()
-            
+        
             return response
+
+            # image = Image.open(frame_path)
+            # if image.mode != "RGB":
+            #     image = image.convert("RGB")
+
+            # # Create message structure for SmolVLM2
+            # messages = [
+            #     {
+            #         "role": "user",
+            #         "content": [
+            #             {"type": "image"},
+            #             {"type": "text", "text": "Describe this image in detail."}
+            #         ]
+            #     }
+            # ]
+            
+            # # Prepare inputs
+            # prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True)
+            # inputs = self.processor(text=prompt, images=[image], return_tensors="pt")
+            # # # OpenVINO model handles inputs directly, no .to(device) needed usually if model call handles it,
+            # # # but usually inputs need to be on CPU for OV model.
+            # # inputs = inputs.to("cpu")
+
+            # # Generate
+            # generated_ids = self.model.generate(
+            #     **inputs,
+            #     max_new_tokens=256,
+            #     do_sample=False,
+            # )
+            
+            # # Decode
+            # generated_texts = self.processor.batch_decode(
+            #     generated_ids,
+            #     skip_special_tokens=True,
+            # )
+            
+            # # The output usually contains the prompt, we need to extract the assistant response
+            # # Note: batch_decode with skip_special_tokens might strip the role markers, making splitting hard.
+            # # But usually newer transformers handle this. Let's return the full text for now or simple strip.
+            # response = generated_texts[0]
+            # # Naive cleaning if prompt is included
+            # if "Assistant:" in response:
+            #     response = response.split("Assistant:")[-1].strip()
+            
+            # return response
             
         except Exception as e:
             logger.error(f"Error analyzing frame {frame_path}: {e}")
@@ -116,9 +136,6 @@ class VisionAgent:
         """
         Unload model to free RAM.
         """
-        if not self.mock_mode:
-            self.model = None
-            self.processor = None
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            logger.info("Vision Model unloaded.")
+        self.model = None
+        self.processor = None
+        logger.info("Vision Model unloaded.")

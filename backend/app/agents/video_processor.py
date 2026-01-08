@@ -22,8 +22,20 @@ class VideoProcessor:
         self.model_path = get_model_path("audio")
         self.model_size = model_size # Keep for reference if needed, but use path for loading
         # OpenVINO device: "GPU" for iGPU 
-        self.device = "GPU"
+        # self.device = "GPU"
+        self.device = "CPU"
         self.pipeline = None
+
+    def compute_file_hash(self, file_path: str) -> str:
+        """
+        Computes SHA-256 hash of a file.
+        """
+        import hashlib
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
 
     def load_model(self):
         if self.pipeline is None:
@@ -33,7 +45,6 @@ class VideoProcessor:
                 # Load model with OpenVINO optimization
                 model = OVModelForSpeechSeq2Seq.from_pretrained(
                     self.model_path, 
-                    export=True, 
                     device=self.device
                 )
             except RuntimeError as e:
@@ -41,7 +52,6 @@ class VideoProcessor:
                 self.device = "CPU"
                 model = OVModelForSpeechSeq2Seq.from_pretrained(
                     self.model_path, 
-                    export=True, 
                     device=self.device
                 )
             processor = AutoProcessor.from_pretrained(self.model_path)
@@ -71,9 +81,6 @@ class VideoProcessor:
         3. Extract Frames
         Returns dict with transcription and frame paths.
         """
-        if not os.path.exists(video_path):
-            raise FileNotFoundError(f"Video not found: {video_path}")
-
         logger.info(f"Processing video: {video_path}")
         
         # 1. & 2. Audio Processing
