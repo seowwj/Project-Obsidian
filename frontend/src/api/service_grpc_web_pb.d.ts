@@ -48,12 +48,20 @@ export class ObsidianServiceClient {
       response: service_pb.DeleteSessionResponse) => void
   ): grpcWeb.ClientReadableStream<service_pb.DeleteSessionResponse>;
 
+
   renameSession(
     request: service_pb.RenameSessionRequest,
     metadata: grpcWeb.Metadata | undefined,
     callback: (err: grpcWeb.RpcError,
       response: service_pb.RenameSessionResponse) => void
   ): grpcWeb.ClientReadableStream<service_pb.RenameSessionResponse>;
+
+  getStatus(
+    request: service_pb.GetStatusRequest,
+    metadata: grpcWeb.Metadata | undefined,
+    callback: (err: grpcWeb.RpcError,
+      response: service_pb.GetStatusResponse) => void
+  ): grpcWeb.ClientReadableStream<service_pb.GetStatusResponse>;
 
 }
 
@@ -77,10 +85,16 @@ export class ObsidianServicePromiseClient {
     metadata?: grpcWeb.Metadata
   ): Promise<service_pb.GetHistoryResponse>;
 
+
   renameSession(
     request: service_pb.RenameSessionRequest,
     metadata?: grpcWeb.Metadata
   ): Promise<service_pb.RenameSessionResponse>;
+
+  getStatus(
+    request: service_pb.GetStatusRequest,
+    metadata?: grpcWeb.Metadata
+  ): Promise<service_pb.GetStatusResponse>;
 
 }
 

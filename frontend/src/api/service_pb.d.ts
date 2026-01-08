@@ -419,6 +419,7 @@ export namespace RenameSessionRequest {
   }
 }
 
+
 export class RenameSessionResponse extends jspb.Message {
   getSuccess(): boolean;
   setSuccess(value: boolean): RenameSessionResponse;
@@ -434,5 +435,37 @@ export class RenameSessionResponse extends jspb.Message {
 export namespace RenameSessionResponse {
   export type AsObject = {
     success: boolean,
+  }
+}
+
+export class GetStatusRequest extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetStatusRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetStatusRequest): GetStatusRequest.AsObject;
+  static serializeBinaryToWriter(message: GetStatusRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetStatusRequest;
+  static deserializeBinaryFromReader(message: GetStatusRequest, reader: jspb.BinaryReader): GetStatusRequest;
+}
+
+export namespace GetStatusRequest {
+  export type AsObject = {
+  }
+}
+
+export class GetStatusResponse extends jspb.Message {
+  getModelLoaded(): boolean;
+  setModelLoaded(value: boolean): GetStatusResponse;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetStatusResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetStatusResponse): GetStatusResponse.AsObject;
+  static serializeBinaryToWriter(message: GetStatusResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetStatusResponse;
+  static deserializeBinaryFromReader(message: GetStatusResponse, reader: jspb.BinaryReader): GetStatusResponse;
+}
+
+export namespace GetStatusResponse {
+  export type AsObject = {
+    modelLoaded: boolean,
   }
 }

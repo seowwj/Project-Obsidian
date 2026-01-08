@@ -3,16 +3,17 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor
 from optimum.intel import OVModelForVisualCausalLM
+from ..config import get_model_path
 
 logger = logging.getLogger(__name__)
 
 class VisionAgent:
-    def __init__(self, model_id="HuggingFaceTB/SmolVLM2-500M-Video-Instruct"):
+    def __init__(self):
         """
         Initialize SmolVLM2 Vision Agent with OpenVINO.
         Lazy loading enabled.
         """
-        self.model_id = model_id
+        self.model_id = get_model_path("vision")
         # OpenVINO device: "GPU" for iGPU, "CPU" for fallback
         self.device = "GPU"
         self.model = None

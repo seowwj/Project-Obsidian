@@ -7,6 +7,7 @@ import imageio_ffmpeg
 import soundfile as sf
 from optimum.intel import OVModelForSpeechSeq2Seq
 from transformers import AutoProcessor, pipeline
+from ..config import get_model_path
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,11 @@ class VideoProcessor:
         """
         Initialize VideoProcessor with OpenVINO (Whisper).
         """
-        self.model_size = f"openai/whisper-{model_size}"
+        # If user passed "small" explicitly in orchestration, we might want to respect it relative to config, 
+        # but for now we'll prefer the compiled path if it matches the "audio" type.
+        # Ideally get_model_path could take an argument, but simplicity first.
+        self.model_path = get_model_path("audio")
+        self.model_size = model_size # Keep for reference if needed, but use path for loading
         # OpenVINO device: "GPU" for iGPU 
         self.device = "GPU"
         self.pipeline = None
@@ -27,7 +32,7 @@ class VideoProcessor:
             try:
                 # Load model with OpenVINO optimization
                 model = OVModelForSpeechSeq2Seq.from_pretrained(
-                    self.model_size, 
+                    self.model_path, 
                     export=True, 
                     device=self.device
                 )
@@ -35,11 +40,11 @@ class VideoProcessor:
                 logger.warning(f"Failed to load on {self.device}: {e}. Falling back to CPU.")
                 self.device = "CPU"
                 model = OVModelForSpeechSeq2Seq.from_pretrained(
-                    self.model_size, 
+                    self.model_path, 
                     export=True, 
                     device=self.device
                 )
-            processor = AutoProcessor.from_pretrained(self.model_size)
+            processor = AutoProcessor.from_pretrained(self.model_path)
 
             self.pipeline = pipeline(
                 "automatic-speech-recognition",

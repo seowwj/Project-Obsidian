@@ -28,7 +28,8 @@ const {
   RenameSessionRequest,
   ChatRequest,
   GetHistoryRequest,
-  UploadRequest
+  UploadRequest,
+  GetStatusRequest
 } = service_pb_module;
 
 // @ts-ignore
@@ -37,14 +38,36 @@ import type { ObsidianServiceClient as ProtoClient } from './service_grpc_web_pb
 // Singleton client instance
 let clientInstance: ProtoClient | null = null;
 
-const getClient = () => {
+const getClient = (): ProtoClient => {
   if (!clientInstance) {
     clientInstance = new ObsidianServiceClient('http://localhost:8080');
   }
-  return clientInstance;
+  return clientInstance!;
 };
 
 // -- Session Management --
+
+export const getStatus = (): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const client = getClient();
+      const req = new GetStatusRequest();
+
+      client.getStatus(req, {}, (err: any, response: any) => {
+        if (err) {
+          // If error (e.g. server not reachable), assume not loaded
+          console.warn("GetStatus Error (assuming offline/loading):", err);
+          resolve(false);
+        } else {
+          resolve(response.getModelLoaded());
+        }
+      });
+    } catch (e) {
+      console.error("GetStatus Exception:", e);
+      resolve(false);
+    }
+  });
+};
 
 export const createSession = (videoId: string | null = null): Promise<string> => {
   return new Promise((resolve, reject) => {

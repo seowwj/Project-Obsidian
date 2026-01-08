@@ -1,6 +1,30 @@
 # Project Obsidian Changelog
 
-## [Unreleased]
+## [0.3.0] - 2026-01-08
+
+### Critical Fixes
+- **Backend Model Storage**:
+    - Fixed issue where models were silently downloading to C: drive (causing OOM/Disk Full) by forcibly setting `hf_home` and `ov_model_dir` via new startup scripts.
+    - Added `run_backend.ps1` (Windows) and `run_backend.sh` (Linux) to strictly enforce environment variable configuration.
+    - Updated `config.py` to correctly detect and load local OpenVINO models (e.g. `openvino_language_model.xml`) from the `D:` drive.
+- **Frontend Crash**:
+    - Resolved `Uncaught TypeError: Cannot read properties of null` at startup.
+    - Identified and removed `goog.exportSymbol(..., null)` in `service_pb.js` which was nullifying the `GetStatusRequest` constructor.
+    - Added explicit `exports` for `GetStatusRequest` and `GetStatusResponse` to ensure reliable CommonJS interop.
+- **Backend Imports**:
+    - Updated `server.py`, `orchestrator.py`, and `service_pb2_grpc.py` to use relative imports.
+
+### Added
+- **OpenVINO Integration**:
+    - Successfully integrated `optimum-intel` with `Phi-3-mini` (INT4) and `SmolVLM2`.
+    - Integrated `openai/whisper-small` for speech-to-text.
+    - Created `manage_models.py` for model downloading and compilation.
+    - Added `helper_scripts/export_models.ps1` and `.sh` for manual CLI model management.
+- **Documentation**:
+    - Added `docs_extra/troubleshooting_jan2026.md` detailing the root cause and fix for the above critical issues.
+    - Updated `docs_extra/manual_proto_patches.md` with the correct export patterns.
+
+## [0.2.0] - Unreleased
 
 ### Fixed
 - **Video Deduplication**: Implemented SHA-256 hashing for uploads. Existing videos (by content) are detected, and their ID is returned immediately, preventing re-processing and DB duplication. Added `video_hash` column to `videos` table.

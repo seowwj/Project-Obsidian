@@ -8,11 +8,11 @@ import sqlite3
 import sonora.asgi
 
 # Add backend/app directory to sys.path to ensure imports work
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import service_pb2
-import service_pb2_grpc
-from orchestrator import AgentOrchestrator
+from . import service_pb2
+from . import service_pb2_grpc
+from .orchestrator import AgentOrchestrator
 import imageio_ffmpeg
 
 # Force transformers to see our private ffmpeg
@@ -120,6 +120,14 @@ class ObsidianService(service_pb2_grpc.ObsidianServiceServicer):
             logger.error(f"Error in GetHistory: {e}")
             return service_pb2.GetHistoryResponse(messages=[])
 
+    async def GetStatus(self, request, context):
+        try:
+            is_ready = self.orchestrator.is_model_ready()
+            return service_pb2.GetStatusResponse(model_loaded=is_ready)
+        except Exception as e:
+            logger.error(f"Error in GetStatus: {e}")
+            return service_pb2.GetStatusResponse(model_loaded=False)
+
 async def serve():
     pass # No-op for direct execution if imported
 
@@ -171,6 +179,11 @@ def get_application():
                     servicer.RenameSession,
                     request_deserializer=service_pb2.RenameSessionRequest.FromString,
                     response_serializer=service_pb2.RenameSessionResponse.SerializeToString,
+            ),
+            'GetStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStatus,
+                    request_deserializer=service_pb2.GetStatusRequest.FromString,
+                    response_serializer=service_pb2.GetStatusResponse.SerializeToString,
             ),
     }
     

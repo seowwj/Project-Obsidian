@@ -6,81 +6,14 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from agents.video_processor import VideoProcessor
-from agents.vector_store import VectorStore
-from agents.vision_agent import VisionAgent
-from agents.generation_agent import GenerationAgent
+from .agents.video_processor import VideoProcessor
+from .agents.vector_store import VectorStore
+from .agents.vision_agent import VisionAgent
+from .agents.generation_agent import GenerationAgent
 
 # ... (imports)
 
-class AgentOrchestrator:
-    def __init__(self, db_path="obsidian.db"):
-        # ...
-        self.video_processor = VideoProcessor(model_size="small")
-        self.vector_store = VectorStore()
-        self.vision_agent = VisionAgent()
-        self.generation_agent = GenerationAgent() # Phi-3
-        
-        # ...
 
-    async def chat(self, video_id: str, message: str):
-        # ... (Validation logic same as before) ...
-        # Verify video exists
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, status FROM videos WHERE id = ?", (video_id,))
-            row = cursor.fetchone()
-            if not row:
-                yield "Error: Video ID not found.", "error"
-                return
-            
-            status = row[1]
-            if status == "processing":
-                 yield "Video is still processing... please wait a moment.", "text"
-                 return
-            elif status.startswith("error"):
-                 yield f"Video processing failed: {status}", "error"
-                 return
-
-            # Store user message
-            timestamp = datetime.now().isoformat()
-            cursor.execute(
-                "INSERT INTO chat_history (video_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                (video_id, "user", message, timestamp)
-            )
-            conn.commit()
-
-        # 1. Retrieve Context from Vector Store
-        results = self.vector_store.search(message, n_results=5) # Increased context
-        documents = results['documents'][0] if results['documents'] else []
-        
-        context_str = "\n".join(documents)
-        logger.info(f"Retrieved context: {context_str}")
-        
-        if not context_str:
-            context_str = "No specific context found in the video."
-
-        # 2. Generate Response using Phi-3
-        # Offload to thread to avoid blocking async loop
-        loop = asyncio.get_running_loop()
-        response_text = await loop.run_in_executor(
-            self.executor, 
-            self.generation_agent.generate_response, 
-            context_str, 
-            message
-        )
-        
-        # Yield result
-        yield response_text, "text"
-        
-        # Store assistant message
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO chat_history (video_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                (video_id, "assistant", response_text, datetime.now().isoformat())
-            )
-            conn.commit()
 logger = logging.getLogger(__name__)
 
 class AgentOrchestrator:
@@ -94,9 +27,17 @@ class AgentOrchestrator:
         self.vector_store = VectorStore()
         # Initialize Vision Agent (this downloads Florence-2 ~1GB)
         self.vision_agent = VisionAgent()
+        # Initialize Generation Agent
+        self.generation_agent = GenerationAgent()
         
         # Executor for background tasks
         self.executor = ThreadPoolExecutor(max_workers=2)
+        
+        # Trigger Model Loading in Background
+        self.executor.submit(self.generation_agent.load_model)
+
+    def is_model_ready(self):
+        return self.generation_agent.is_loaded()
 
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
@@ -245,20 +186,24 @@ class AgentOrchestrator:
              logger.info(f"Retrieved context for video {video_id}: {context_str}")
 
         # 3. Generate Response
-        # In a real app, we pass context_str + message to LLM
-        if context_str:
-            response_text = f"Based on the video content:\n{context_str}\n\n(Answer generated from {len(documents)} context chunks)"
-        else:
-            # Text-only or no context found
-            if video_id:
-                response_text = "I couldn't find specific details in the video about that."
-            else:
-                response_text = f"I am a text-only assistant in this session. You said: {message}"
+        response_text = ""
         
-        # Simulate streaming
-        for word in response_text.split(" "):
-            yield word + " ", "text"
-            await asyncio.sleep(0.05)
+        # Use GenerationAgent for streaming response
+        # Using executor to run the synchronous stream generator might be tricky since specialized thread is used inside generation_agent.
+        # However, generate_response_stream returns a generator.
+        # We can iterate over it directly if it launches its own thread (which we did implement).
+        
+        try:
+            stream_generator = self.generation_agent.generate_response_stream(context_str, message)
+            
+            for chunk in stream_generator:
+                response_text += chunk
+                yield chunk, "text"
+                await asyncio.sleep(0.01) # Yield to event loop
+        except Exception as e:
+            logger.error(f"Generation error: {e}")
+            yield f"Error generating response: {e}", "error"
+            return
         
         # Store assistant message
         with sqlite3.connect(self.db_path) as conn:

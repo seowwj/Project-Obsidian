@@ -25,8 +25,16 @@ let messages = require('./service_pb.js');
 const globalScope = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : null));
 
 // Fallback logic: If require didn't give us named exports, check the global 'proto.obsidian'
-if ((!messages || !messages.UploadRequest) && globalScope && globalScope.proto && globalScope.proto.obsidian) {
+if ((!messages || !messages.UploadRequest || !messages.GetStatusRequest) && globalScope && globalScope.proto && globalScope.proto.obsidian) {
+  console.log("GRPC-WEB: Falling back to global proto.obsidian for messages");
   messages = globalScope.proto.obsidian;
+}
+
+if (!messages.GetStatusRequest) {
+  console.warn("GRPC-WEB: GetStatusRequest MISSING from messages!", Object.keys(messages));
+  if (globalScope && globalScope.proto && globalScope.proto.obsidian) {
+    console.warn("GRPC-WEB: Global proto keys:", Object.keys(globalScope.proto.obsidian));
+  }
 }
 
 // Local proto object for constructing the service client export
@@ -567,5 +575,64 @@ proto.obsidian.ObsidianServicePromiseClient.prototype.renameSession =
       methodDescriptor_ObsidianService_RenameSession);
   };
 
+
+
+/**
+ * @const
+ * @type {!grpc.web.MethodDescriptor<
+ *   !proto.obsidian.GetStatusRequest,
+ *   !proto.obsidian.GetStatusResponse>}
+ */
+const methodDescriptor_ObsidianService_GetStatus = new grpc.web.MethodDescriptor(
+  '/obsidian.ObsidianService/GetStatus',
+  grpc.web.MethodType.UNARY,
+  messages.GetStatusRequest,
+  messages.GetStatusResponse,
+  /**
+   * @param {!proto.obsidian.GetStatusRequest} request
+   * @return {!Uint8Array}
+   */
+  function (request) {
+    return request.serializeBinary();
+  },
+  messages.GetStatusResponse.deserializeBinary
+);
+
+/**
+ * @param {!proto.obsidian.GetStatusRequest} request The
+ *     request proto
+ * @param {?Object<string, string>} metadata User defined
+ *     call metadata
+ * @param {function(?grpc.web.RpcError, ?proto.obsidian.GetStatusResponse)}
+ *     callback The callback function(error, response)
+ * @return {!grpc.web.ClientReadableStream<!proto.obsidian.GetStatusResponse>|undefined}
+ *     The XHR Node Readable Stream
+ */
+proto.obsidian.ObsidianServiceClient.prototype.getStatus =
+  function (request, metadata, callback) {
+    return this.client_.rpcCall(this.hostname_ +
+      '/obsidian.ObsidianService/GetStatus',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_GetStatus,
+      callback);
+  };
+
+/**
+ * @param {!proto.obsidian.GetStatusRequest} request The
+ *     request proto
+ * @param {?Object<string, string>=} metadata User defined
+ *     call metadata
+ * @return {!Promise<!proto.obsidian.GetStatusResponse>}
+ *     Promise that resolves to the response
+ */
+proto.obsidian.ObsidianServicePromiseClient.prototype.getStatus =
+  function (request, metadata) {
+    return this.client_.unaryCall(this.hostname_ +
+      '/obsidian.ObsidianService/GetStatus',
+      request,
+      metadata || {},
+      methodDescriptor_ObsidianService_GetStatus);
+  };
 
 module.exports = proto.obsidian;

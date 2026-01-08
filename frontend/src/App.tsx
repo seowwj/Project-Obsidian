@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { MainLayout } from './layouts/MainLayout';
-import { getHistory, listSessions, createSession } from './api/client';
+import { getHistory, listSessions, createSession, getStatus } from './api/client';
 import { Sparkles } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -39,7 +39,7 @@ function App() {
     }
   };
 
-  // Initial Data Fetch
+  // Initial Data Fetch & Model Status Polling
   useEffect(() => {
     console.log("Attempting to show window...");
     try {
@@ -49,9 +49,29 @@ function App() {
       console.error("Failed to show window:", e);
     }
 
-    refreshSessions().finally(() => {
-      setTimeout(() => setIsInitializing(false), 800);
-    });
+    const init = async () => {
+      // 1. Refresh Sessions
+      await refreshSessions();
+
+      // 2. Poll for Model Status
+      console.log("Polling for model status...");
+      let ready = false;
+      let retries = 0;
+      while (!ready) {
+        ready = await getStatus();
+        if (!ready) {
+          // Basic backoff or just constant poll
+          await new Promise(r => setTimeout(r, 1000));
+          retries++;
+          if (retries % 5 === 0) console.log("Still loading model...");
+        }
+      }
+      console.log("Model loaded!");
+
+      setTimeout(() => setIsInitializing(false), 500);
+    };
+
+    init();
   }, []);
 
   // Polling for chat history
@@ -114,7 +134,7 @@ function App() {
           <Sparkles size={48} className="text-blue-400 animate-pulse drop-shadow-[0_0_15px_rgba(96,165,250,0.8)] relative z-10" />
         </div>
         <div className="text-gray-400 font-medium animate-pulse">
-          Initializing Obsidian AI...
+          Loading AI Model... (this may take a minute)
         </div>
       </div>
     );

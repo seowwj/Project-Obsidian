@@ -1,28 +1,42 @@
 import logging
 import torch
-from transformers import AutoTokenizer, pipeline
+import threading
+from transformers import AutoTokenizer, pipeline, TextIteratorStreamer
 from optimum.intel import OVModelForCausalLM
+from ..config import get_model_path
 
 logger = logging.getLogger(__name__)
 
 class GenerationAgent:
-    def __init__(self, model_id="OpenVINO/Phi-3-mini-4k-instruct-int4-ov"):
+    def __init__(self):
         """
         Initialize Generation Agent with Phi-3 (OpenVINO Optimized).
         """
-        self.model_id = model_id
+        self.model_id = get_model_path("generation")
         # OpenVINO device: "GPU" for iGPU, "CPU" for fallback
         self.device = "GPU" 
         self.model = None
         self.tokenizer = None
         self.pipeline = None
+        
+        # Loading state management
+        self._is_loading = False
+        self._lock = threading.Lock()
+
+    def is_loaded(self):
+        return self.pipeline is not None
 
     def load_model(self):
         """
-        Loads the LLM into memory.
+        Loads the LLM into memory. Thread-safe.
         """
         if self.pipeline is not None:
             return
+
+        with self._lock:
+            if self._is_loading or self.pipeline is not None:
+                return
+            self._is_loading = True
 
         logger.info(f"Loading Gen Model ({self.model_id}) on {self.device} (OpenVINO)...")
         try:
@@ -32,67 +46,74 @@ class GenerationAgent:
             )
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
             
+            # We don't create a pipeline here for streaming, or we use it differently.
+            # Keeping pipeline for flexibility but for streaming we usually call model.generate directly.
+            # Actually pipeline supports streamer too.
             self.pipeline = pipeline(
                 "text-generation", 
                 model=self.model, 
                 tokenizer=self.tokenizer,
                 max_new_tokens=512,
             )
-            logger.info("Gen Model loaded successfully on OpenVINO.")
+            logger.info(f"Chat Model loaded successfully on {self.device} (OpenVINO).")
             
         except RuntimeError as e:
             logger.warning(f"Failed to load on {self.device}: {e}. Falling back to CPU.")
-            self.device = "CPU"
-            self.model = OVModelForCausalLM.from_pretrained(
-                self.model_id, 
-                device=self.device
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
-            self.pipeline = pipeline(
-                "text-generation", 
-                model=self.model, 
-                tokenizer=self.tokenizer,
-                max_new_tokens=512,
-            )
-            
+            try:
+                self.device = "CPU"
+                self.model = OVModelForCausalLM.from_pretrained(
+                    self.model_id, 
+                    device=self.device
+                )
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+                self.pipeline = pipeline(
+                    "text-generation", 
+                    model=self.model, 
+                    tokenizer=self.tokenizer,
+                    max_new_tokens=512,
+                )
+                logger.info("Chat Model loaded successfully on CPU fallback.")
+            except Exception as e2:
+                 logger.error(f"Failed to load Chat Model even on CPU: {e2}")
+                 # Reset loading flag?
         except Exception as e:
-             logger.error(f"Failed to load Gen Model: {e}")
-             raise e
+             logger.error(f"Failed to load Chat Model: {e}")
+        finally:
+            with self._lock:
+                self._is_loading = False
 
-    def generate_response(self, context: str, user_query: str) -> str:
+    def generate_response_stream(self, context: str, user_query: str):
         """
-        Generates a response using Phi-3.
+        Generates a streaming response using Phi-3.
+        Yields chunks of text.
         """
         if self.pipeline is None:
-            self.load_model()
-            
-        # Construct Prompt for Phi-3
-        # Strict prompt formatting to ensure it uses the context
+            yield "Model is still loading... please wait."
+            return
+
         messages = [
             {"role": "system", "content": "You are a helpful AI assistant. Answer the user's question based ONLY on the provided Context. If the answer is not in the context, say you don't know."},
             {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {user_query}"}
         ]
         
         input_text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        # Using TextIteratorStreamer
+        streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True, skip_special_tokens=True)
         
-        logger.info("Generating response...")
-        output = self.pipeline(input_text, do_sample=True, temperature=0.7)
-        # Output format: [{'generated_text': '...'}]
-        generated_text = output[0]['generated_text']
+        generation_kwargs = dict(
+            text_inputs=input_text,
+            streamer=streamer,
+            max_new_tokens=512,
+            do_sample=True,
+            temperature=0.7
+        )
         
-        # Extract only the assistant's reply (remove prompt)
-        # Phi-3 typically separates with <|assistant|> or similar tokens in the template
-        # The pipeline output usually includes the full prompt if not configured otherwise.
-        # But we can try to split by the prompt end if we knew it, or use the length.
+        # Run generation in a separate thread so we can iterate the streamer
+        thread = threading.Thread(target=self.pipeline, kwargs=generation_kwargs)
+        thread.start()
         
-        # Simpler approach: find the last occurrence of the "assistant" header if strictly templated
-        # For simplicity with Pipeline, we can just return the text after the input_text
-        if generated_text.startswith(input_text):
-             response = generated_text[len(input_text):].strip()
-        else:
-             response = generated_text
-             
-        return response
+        for new_text in streamer:
+            yield new_text
 
     def unload(self):
         """
@@ -107,4 +128,4 @@ class GenerationAgent:
             self.tokenizer = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-            logger.info("Gen Model unloaded.")
+            logger.info("Chat Model unloaded.")

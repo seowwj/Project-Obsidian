@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import service_pb2 as service__pb2
+from . import service_pb2 as service__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
@@ -74,6 +74,11 @@ class ObsidianServiceStub(object):
                 request_serializer=service__pb2.RenameSessionRequest.SerializeToString,
                 response_deserializer=service__pb2.RenameSessionResponse.FromString,
                 _registered_method=True)
+        self.GetStatus = channel.unary_unary(
+                '/obsidian.ObsidianService/GetStatus',
+                request_serializer=service__pb2.GetStatusRequest.SerializeToString,
+                response_deserializer=service__pb2.GetStatusResponse.FromString,
+                _registered_method=True)
 
 
 class ObsidianServiceServicer(object):
@@ -135,6 +140,13 @@ class ObsidianServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetStatus(self, request, context):
+        """Checks the status of the backend (e.g. model loading).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ObsidianServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -177,6 +189,11 @@ def add_ObsidianServiceServicer_to_server(servicer, server):
                     servicer.RenameSession,
                     request_deserializer=service__pb2.RenameSessionRequest.FromString,
                     response_serializer=service__pb2.RenameSessionResponse.SerializeToString,
+            ),
+            'GetStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStatus,
+                    request_deserializer=service__pb2.GetStatusRequest.FromString,
+                    response_serializer=service__pb2.GetStatusResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -395,6 +412,33 @@ class ObsidianService(object):
             '/obsidian.ObsidianService/RenameSession',
             service__pb2.RenameSessionRequest.SerializeToString,
             service__pb2.RenameSessionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/obsidian.ObsidianService/GetStatus',
+            service__pb2.GetStatusRequest.SerializeToString,
+            service__pb2.GetStatusResponse.FromString,
             options,
             channel_credentials,
             insecure,

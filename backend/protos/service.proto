@@ -26,6 +26,9 @@ service ObsidianService {
 
   // Rename a session.
   rpc RenameSession (RenameSessionRequest) returns (RenameSessionResponse) {}
+
+  // Checks the status of the backend (e.g. model loading).
+  rpc GetStatus (GetStatusRequest) returns (GetStatusResponse) {}
 }
 
 message UploadRequest {
@@ -36,6 +39,14 @@ message UploadResponse {
   string video_id = 1;
   string status = 2;
 }
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  bool model_loaded = 1;
+}
+
+
 
 message CreateSessionRequest {
   string video_id = 1; // Optional. If empty, it's a text-only chat.
