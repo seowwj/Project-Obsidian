@@ -1,5 +1,11 @@
 ## Work Log / Backlog / Scratchpad
 
+### 2026-01-09 - Fresh Start 🌱
+- Simple chatbot with memory and streaming implemented using LangGraph.
+- Using FastAPI (REST based) to communicate between frontend and backend. Future plan is to use ConnectRPC + Tauri.(replace `StreamingResponse` with a ConnectRPC handler.)
+
+- ⚠️ LIMITATION: Chatbot memory is not persistent (no database). Future plan for drop in replacement in LangGraph (swap `MemorySaver` with `SqliteSaver`)
+
 ### 2026-01-08 - Fresh Start 🌱
 - Removed all frontend code to focus on backend.
 - Planned rearchitecture to use LangGraph to coordinate between all tool / agent use.

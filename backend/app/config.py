@@ -28,8 +28,8 @@ if OV_MODEL_DIR:
 
 # Model IDs
 MODEL_IDS = {
-    "generation": "OpenVINO/Phi-3-mini-4k-instruct-int4-ov",
-    # "generation": "OpenVINO/Qwen3-0.6B-int4-ov",
+    "chat": "OpenVINO/Phi-3-mini-4k-instruct-int4-ov",
+    # "chat": "OpenVINO/Qwen3-0.6B-int4-ov",
     "vision": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
     "audio": "openai/whisper-small" 
 }

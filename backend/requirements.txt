@@ -1,4 +1,7 @@
 mcp
+langgraph
+fastapi
+uvicorn
 optimum-intel[openvino,nncf]
 chromadb
 opencv-python
