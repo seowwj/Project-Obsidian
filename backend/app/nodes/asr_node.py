@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Dict, Any, List
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnableConfig
 
 from .base_node import BaseNode
@@ -162,5 +162,5 @@ class ASRNode(BaseNode):
         return {
             "media_id": media_id,
             "transcription_segments": transcription_segments,
-            "messages": [HumanMessage(content=f"Audio Transcription:\n{full_text}")]
+            "messages": [AIMessage(content=f"I have processed the audio file '{media_id}'.")]
         }

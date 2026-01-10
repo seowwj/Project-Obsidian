@@ -3,8 +3,12 @@
 ### 2026-01-10 - Fresh Start 🌱
 - Set up ASR / Whisper model for audio transcription. Currently able to return timestamps. For ASR, using OpenVINO GenAI library instead of OpenVINO / Optimum. (Experimentation to figure out if OpenVINO GenAI can provide Whisper confidence scores)
 - Create simple heuristics to estimate usability of audio segments.
+- Add chatbot (client.py) handling of files through `/file` command.
+- Add support for tools (ToolsNode). Created a simple `add_numbers` tool for sanity check.
+- Add preliminary ASR pipeline connected to the main chatbot.
 
 - ⚠️ LIMITATION: ASR / Whisper does not return confidence scores (both OpenVINO GenAI / OpenVINO Optimum).
+- ⚠️ LIMITATION: When adding files, must have the `/file` command at the beginning of the message.
 
 ### 2026-01-09 - Fresh Start 🌱
 - Simple chatbot with memory and streaming implemented using LangGraph.

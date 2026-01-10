@@ -7,7 +7,7 @@ from .llm import SLMWrapper
 from .asr import ASRWrapper
 from .nodes.chat_node import ChatNode
 from .nodes.asr_node import ASRNode
-
+from .nodes.tool_node import ToolNode
 
 logger = logging.getLogger(__name__)
 
@@ -30,17 +30,38 @@ class AgentOrchestrator:
         # Instantiate nodes
         chat_node = ChatNode(model=chat_model, name="chat_node")
         asr_node = ASRNode(model=asr_model)
+        tool_node = ToolNode()
 
         # Build graph
         graph = StateGraph(AgentState)
         graph.add_node("chatbot", chat_node)
         graph.add_node("asr", asr_node)
+        graph.add_node("tools", tool_node)
         
         # Edges
-        ## TEMP - FAST FAIL for ASR
-        graph.add_edge("asr", END)
-        # graph.add_edge("asr", "chatbot")
-        graph.add_edge("chatbot", END)
+        graph.add_edge("asr", "chatbot")
+        graph.add_edge("tools", "chatbot")
+
+        # Conditional Edge Logic
+        def should_continue(state: AgentState):
+            messages = state['messages']
+            if not messages:
+                return END
+                
+            last_message = messages[-1]
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                return "tools"
+            
+            return END
+
+        graph.add_conditional_edges(
+            "chatbot",
+            should_continue,
+            {
+                "tools": "tools",
+                END: END
+            }
+        )
 
         # Conditional Entry Point
         def route_input(state: AgentState):

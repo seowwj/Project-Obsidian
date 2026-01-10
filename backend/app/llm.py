@@ -11,7 +11,7 @@ from .config import get_model_path
 import logging
 
 class SLMWrapper(BaseLLMWrapper):
-    """Small local LLM"""
+    """Small language model wrapper"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -56,8 +56,21 @@ class SLMWrapper(BaseLLMWrapper):
         if not messages:
             chat_history.append({"role": "system", "content": "You are a helpful assistant."})
         for msg in messages:
-            role = "user" if msg.type == "human" else "assistant"
-            chat_history.append({"role": role, "content": msg.content})
+            content = msg.content
+            if msg.type == "human":
+                role = "user"
+            elif msg.type == "system":
+                # Ensure system messages are treated as system role
+                role = "system"
+            elif msg.type == "tool":
+                # Treat tool outputs as user messages to prompt the model to respond to them
+                role = "user"
+                # Explicity label tool output so model doesn't confuse it with human conversation
+                content = f"Tool output: {content}"
+            else:
+                role = "assistant"
+            
+            chat_history.append({"role": role, "content": content})
         
         # Apply chat template
         prompt = self.tokenizer.apply_chat_template(chat_history, tokenize=False, add_generation_prompt=True)
@@ -94,7 +107,7 @@ class SLMWrapper(BaseLLMWrapper):
                 break
                 
             if stream_callback:
-                if asyncio.iscoroutinefunction(stream_callback):
+                if asyncio.iscoroutinefunction(stream_callback) or (callable(stream_callback) and asyncio.iscoroutinefunction(getattr(stream_callback, "__call__", None))):
                     await stream_callback(new_text)
                 else:
                     stream_callback(new_text)

@@ -42,10 +42,24 @@ def main():
 
             # Send request to backend
             try:
+                # Check for file command
+                file_path = None
+                message = user_input
+                
+                if user_input.startswith("/file:"):
+                    parts = user_input.split(" ", 1)
+                    file_part = parts[0]
+                    file_path = file_part[len("/file:"):].strip()
+                    
+                    if len(parts) > 1:
+                        message = parts[1]
+                    else:
+                        message = "Processed file."
+                
                 print("AI: ", end="", flush=True)
                 with requests.post(
                     "http://localhost:8000/chat",
-                    json={"message": user_input, "session_id": session_id},
+                    json={"message": message, "session_id": session_id, "file_path": file_path},
                     stream=True
                 ) as response:
                     response.raise_for_status()

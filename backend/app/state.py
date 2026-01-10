@@ -6,6 +6,7 @@ class AgentState(TypedDict):
     # 'add_messages' ensures new messages are appended, not overwritten
     messages: Annotated[List[BaseMessage], add_messages]
     audio_path: str
+    video_path: str
     media_id: str
     transcription_segments: List[Dict]
     

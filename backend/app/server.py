@@ -3,7 +3,8 @@ import logging
 import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 from contextlib import asynccontextmanager
@@ -32,6 +33,7 @@ from typing import Optional
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
+    file_path: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -42,6 +44,7 @@ async def health_check():
 
 from fastapi.responses import StreamingResponse
 import asyncio
+import os
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -59,8 +62,23 @@ async def chat_endpoint(request: ChatRequest):
             if request.session_id:
                 config["configurable"]["thread_id"] = request.session_id
             
+            # Prepare input
+            inputs = {"messages": [HumanMessage(content=request.message)]}
+            
+            # Check for file attachments
+            if request.file_path:
+                ext = os.path.splitext(request.file_path)[1].lower()
+                if ext in ['.wav', '.mp3', '.m4a', '.flac']:
+                    logger.info(f"Injecting audio path: {request.file_path}")
+                    inputs["audio_path"] = request.file_path
+                elif ext in ['.mp4', '.mkv', '.mov', '.avi']:
+                    logger.info(f"Injecting video path: {request.file_path}")
+                    inputs["video_path"] = request.file_path
+                else:
+                    logger.warning(f"Unsupported file type: {ext}")
+            
             await orchestrator.graph.ainvoke(
-                {"messages": [HumanMessage(content=request.message)]},
+                inputs,
                 config=config
             )
         except Exception as e:
