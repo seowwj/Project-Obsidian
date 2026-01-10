@@ -7,7 +7,7 @@ from chromadb.utils import embedding_functions
 logger = logging.getLogger(__name__)
 
 class VectorStore:
-    def __init__(self, persist_directory="chroma_db"):
+    def __init__(self, persist_directory="chroma_db", collection_name="video_knowledge"):
         """
         Initialize ChromaDB Persistent Client.
         Explicitly loads the embedding model to avoid timeouts during add().
@@ -23,10 +23,10 @@ class VectorStore:
         
         # Get or create the collection
         self.collection = self.client.get_or_create_collection(
-            name="video_knowledge",
+            name=collection_name,
             embedding_function=self.ef
         )
-        logger.info(f"ChromaDB initialized. Collection count: {self.collection.count()}")
+        logger.info(f"ChromaDB initialized. Collection '{collection_name}' count: {self.collection.count()}")
     
     def add_texts(self, texts: list[str], metadatas: list[dict]):
         """
@@ -51,5 +51,15 @@ class VectorStore:
             query_texts=[query_text],
             n_results=n_results,
             where=where
+        )
+        return results
+
+    def get_by_metadata(self, where: dict):
+        """
+        Retrieve documents strictly by metadata match (no semantic search).
+        """
+        results = self.collection.get(
+            where=where,
+            include=['metadatas', 'documents']
         )
         return results
