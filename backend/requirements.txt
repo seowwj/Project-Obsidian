@@ -16,7 +16,7 @@ uv
 urllib3<2.0
 uvicorn
 chromadb
-openai-whisper
+librosa
 sentence-transformers
 numpy
 --extra-index-url https://download.pytorch.org/whl/cpu

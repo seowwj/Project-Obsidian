@@ -1,5 +1,11 @@
 ## Work Log / Backlog / Scratchpad
 
+### 2026-01-10 - Fresh Start 🌱
+- Set up ASR / Whisper model for audio transcription. Currently able to return timestamps. For ASR, using OpenVINO GenAI library instead of OpenVINO / Optimum. (Experimentation to figure out if OpenVINO GenAI can provide Whisper confidence scores)
+- Create simple heuristics to estimate usability of audio segments.
+
+- ⚠️ LIMITATION: ASR / Whisper does not return confidence scores (both OpenVINO GenAI / OpenVINO Optimum).
+
 ### 2026-01-09 - Fresh Start 🌱
 - Simple chatbot with memory and streaming implemented using LangGraph.
 - Using FastAPI (REST based) to communicate between frontend and backend. Future plan is to use ConnectRPC + Tauri.(replace `StreamingResponse` with a ConnectRPC handler.)
