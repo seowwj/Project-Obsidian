@@ -59,7 +59,7 @@ else
     echo "Action: Export/Convert using optimum-cli"
     
     if command -v optimum-cli &> /dev/null; then
-         optimum-cli export openvino --model "$MODEL_NAME" "$MODEL_PATH"
+         optimum-cli export openvino --trust-remote-code --model "$MODEL_NAME" "$MODEL_PATH"
     else
         echo "Error: optimum-cli not found. Please install optimum-intel[openvino]."
         exit 1

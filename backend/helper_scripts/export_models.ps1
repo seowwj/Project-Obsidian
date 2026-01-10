@@ -69,7 +69,7 @@ else {
     # Check for CLI tool
     if (Get-Command "optimum-cli" -ErrorAction SilentlyContinue) {
         # Defaults to auto-detecting task. For ambiguous cases, user might need to modify script or we add a -Task param.
-        optimum-cli export openvino --model $ModelName $ModelPath
+        optimum-cli export openvino --trust-remote-code --model $ModelName $ModelPath
     }
     else {
         Write-Error "optimum-cli not found. Please install optimum-intel[openvino]."
