@@ -1,8 +1,9 @@
 import logging
 import os
+import re
 from typing import Dict, Any, List
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 
 from .base_node import BaseNode
@@ -22,43 +23,190 @@ class ASRNode(BaseNode):
         # Initialize VectorStore for caching
         self.vector_store = VectorStore(collection_name=collection_name)
 
-    def _analyze_audio_usability(self, text: str, duration: float) -> Dict[str, Any]:
+    def _analyze_audio_usability(self, text: str, segments: list, duration: float) -> Dict[str, Any]:
         """
         Analyze heuristics to determine if audio is informational/usable.
+
+        Heuristics applied (in order):
+        1. Empty/Silent detection
+        2. Non-speech tag detection ([Music], [Applause], etc.)
+        3. Word density (words per second)
+        4. Vocabulary diversity (unique words / total words)
+        5. Repeated phrase detection (hallucination indicator)
+
+        Returns:
+            dict with audio_usable (bool), classification (str), and diagnostics (dict)
         """
         text_clean = text.strip()
-        word_count = len(text_clean.split())
+        words = text_clean.lower().split()
+        word_count = len(words)
+
+        diagnostics = {}
 
         # 1. Silent / Empty
         if not text_clean:
             return {
                 "audio_usable": False,
                 "classification": "silent",
+                "diagnostics": {"reason": "empty_transcription"}
             }
 
-        # 2. Music / Noise tags (If theres [Music] or other tags)
-        if text_clean.startswith("[") and text_clean.endswith("]") and word_count <= 2:
-             return {
+        # 2. Non-speech tag detection ([Music], [Applause], etc.)
+        # Whisper outputs these for non-speech audio
+        tag_pattern = r'^\[.*\]$'
+        if re.match(tag_pattern, text_clean) and word_count <= 2:
+            return {
                 "audio_usable": False,
                 "classification": "music_or_noise",
+                "diagnostics": {"reason": "non_speech_tag", "tag": text_clean}
             }
 
-        # 3. Density check (Words per second)
-        # Informational speech usually has > 0.5 words/sec (very rough heuristic)
-        # Exception: "Yes." "No." (Short but usable, but still will have high WPS)
+        # 3. Word density (words per second)
         wps = word_count / duration if duration > 0 else 0
+        diagnostics["words_per_second"] = round(wps, 2)
 
-        classification = "informational"
-        usable = True
+        if wps < 0.2:  # Very sparse speech
+            return {
+                "audio_usable": False,
+                "classification": "noise",
+                "diagnostics": {**diagnostics, "reason": "low_word_density"}
+            }
 
-        if wps < 0.2: # Very sparse speech, might be background noise hallucination
-             classification = "noise"
-             usable = False
+        # 4. Vocabulary diversity (unique words / total words)
+        unique_words = set(words)
+        vocab_diversity = len(unique_words) / word_count if word_count > 0 else 0
+        diagnostics["vocabulary_diversity"] = round(vocab_diversity, 2)
+
+        # Very low diversity with many words suggests repetitive hallucination
+        if vocab_diversity < 0.3 and word_count > 20:
+            return {
+                "audio_usable": False,
+                "classification": "noise",
+                "diagnostics": {**diagnostics, "reason": "low_vocabulary_diversity"}
+            }
+
+        # 5. Repeated phrase detection (hallucination indicator)
+        # Whisper hallucinations often loop the same phrase
+        repeated_phrases = self._detect_repeated_phrases(text_clean)
+        diagnostics["repeated_phrases"] = repeated_phrases
+
+        if repeated_phrases:
+            # If more than 30% of content is repeated phrases, flag as suspicious
+            repeated_word_count = sum(len(phrase.split()) * count for phrase, count in repeated_phrases.items())
+            repetition_ratio = repeated_word_count / word_count if word_count > 0 else 0
+            diagnostics["repetition_ratio"] = round(repetition_ratio, 2)
+
+            if repetition_ratio > 0.3:
+                return {
+                    "audio_usable": False,
+                    "classification": "noise",
+                    "diagnostics": {**diagnostics, "reason": "excessive_repetition"}
+                }
+
+        # 6. Per-segment quality check
+        flagged_segments = self._analyze_segments_quality(segments)
+        diagnostics["flagged_segments"] = len(flagged_segments)
+
+        # If more than 50% of segments are flagged, consider audio unreliable
+        if segments and len(flagged_segments) > len(segments) * 0.5:
+            return {
+                "audio_usable": False,
+                "classification": "noise",
+                "diagnostics": {**diagnostics, "reason": "many_flagged_segments"}
+            }
 
         return {
-            "audio_usable": usable,
-            "classification": classification,
+            "audio_usable": True,
+            "classification": "informational",
+            "diagnostics": diagnostics
         }
+
+    def _detect_repeated_phrases(self, text: str, min_phrase_words: int = 3, min_repeats: int = 3) -> Dict[str, int]:
+        """
+        Detect repeated phrases that may indicate Whisper hallucination.
+        Example:
+        - Partial sentence loops
+
+        Returns:
+            dict mapping repeated phrases to their occurrence count
+        """
+        words = text.lower().split()
+        phrase_counts = {}
+
+        # Check phrases of various lengths (3-6 words)
+        for phrase_len in range(min_phrase_words, min(7, len(words) + 1)):
+            for i in range(len(words) - phrase_len + 1):
+                phrase = " ".join(words[i:i + phrase_len])
+                phrase_counts[phrase] = phrase_counts.get(phrase, 0) + 1
+
+        # Filter to only phrases that repeat min_repeats times
+        repeated = {phrase: count for phrase, count in phrase_counts.items() if count >= min_repeats}
+
+        # Remove subphrases if a longer phrase contains them with same count
+        filtered = {}
+        for phrase, count in sorted(repeated.items(), key=lambda x: -len(x[0])):
+            is_subphrase = False
+            for longer_phrase in filtered:
+                if phrase in longer_phrase and filtered[longer_phrase] >= count:
+                    is_subphrase = True
+                    break
+            if not is_subphrase:
+                filtered[phrase] = count
+
+        return filtered
+
+    def _analyze_segments_quality(self, segments: List[Dict]) -> List[Dict]:
+        """
+        Analyze individual segments for quality issues.
+
+        Flags segments with:
+        - Duration anomalies (very long duration with little text)
+        - Extremely short segments with generic content
+
+        Returns:
+            list of flagged segments with reasons
+        """
+        flagged = []
+
+        for seg in segments:
+            start = seg.get("start", 0)
+            end = seg.get("end", 0)
+            text = seg.get("text", "").strip()
+
+            duration = end - start
+            word_count = len(text.split())
+
+            issues = []
+
+            # Duration anomaly: long segment with few words
+            if duration > 10 and word_count < 3:
+                issues.append("duration_anomaly")
+
+            # Very sparse: less than 0.1 words per second
+            if duration > 0 and word_count / duration < 0.1:
+                issues.append("very_sparse")
+
+            # Generic filler detection
+            generic_phrases = [
+                "thank you for watching",
+                "please subscribe",
+                "like and subscribe",
+                "see you next time",
+            ]
+            text_lower = text.lower()
+            for phrase in generic_phrases:
+                if phrase in text_lower:
+                    issues.append(f"generic_filler:{phrase}")
+
+            if issues:
+                flagged.append({
+                    "start": start,
+                    "end": end,
+                    "text": text,
+                    "issues": issues
+                })
+
+        return flagged
 
     def _get_cached_segments(self, media_id: str) -> List[Dict]:
         """Retrieve segments from VectorStore if they exist."""
@@ -78,9 +226,8 @@ class ASRNode(BaseNode):
                 "start": meta.get("start"),
                 "end": meta.get("end"),
                 "text": documents[i],
-                # Retrieve optional metadata
                 "classification": meta.get("classification"),
-                "confidence": meta.get("confidence")
+                "audio_usable": meta.get("audio_usable", False),  # Include for cache reconstruction
             })
 
         # Sort by start time
@@ -133,11 +280,20 @@ class ASRNode(BaseNode):
 
         # 2. Check Cache
         cached_segments = self._get_cached_segments(media_id)
-        transcription_segments = []
 
         if cached_segments:
-            self.logger.info("Found cached transcription segments.")
-            transcription_segments = cached_segments
+            self.logger.info(f"Found {len(cached_segments)} cached transcription segments.")
+            # Reconstruct usability metadata from cache
+            # Read actual values from cached metadata - do NOT assume usable
+            first_segment = cached_segments[0] if cached_segments else {}
+            duration = cached_segments[-1].get("end", 0.0) if cached_segments else 0.0
+            usability = {
+                "audio_usable": first_segment.get("audio_usable", False),  # Read from cache
+                "classification": first_segment.get("classification", "unknown"),
+                "segment_count": len(cached_segments),
+                "duration": duration,
+                "diagnostics": {"source": "cache"}
+            }
         else:
             self.logger.info("No cache found. Running ASR transcription...")
             # 3. Run ASR Wrapper
@@ -147,20 +303,23 @@ class ASRNode(BaseNode):
             transcription_segments = result.get("chunks", [])
 
             # 4. Analyze Usability
-            # Estimate duration from from last segment of last chunk
+            # Estimate duration from last segment
             duration = transcription_segments[-1]["end"] if transcription_segments else 0.0
             self.logger.info(f"Duration: {duration}")
-            usability = self._analyze_audio_usability(full_text, duration)
+            usability = self._analyze_audio_usability(full_text, transcription_segments, duration)
+
+            # Add segment_count and duration to usability for state metadata
+            usability["segment_count"] = len(transcription_segments)
+            usability["duration"] = duration
+
             self.logger.info(f"Audio Usability Analysis: {usability}")
 
-            # 5. Save to Cache
+            # 5. Save to Cache (ChromaDB)
             self._cache_segments(media_id, transcription_segments, usability)
 
-        # Construct full text from segments
-        full_text = " ".join([seg["text"].strip() for seg in transcription_segments])
-
+        # Return lightweight state updates only
+        # Segments are stored in ChromaDB, accessed via media_id
         return {
             "media_id": media_id,
-            "transcription_segments": transcription_segments,
-            "messages": [AIMessage(content=f"I have processed the audio file '{media_id}'.")]
+            "audio_usability": usability,
         }

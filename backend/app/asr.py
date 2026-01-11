@@ -75,7 +75,13 @@ class ASRWrapper(BaseLLMWrapper):
     def transcribe(self, audio_path: str) -> Dict[str, Any]:
         """
         Transcribe audio file using OpenVINO GenAI.
-        Returns dict with "text" and "chunks" and "confidence" if available.
+        
+        Returns:
+            dict with "full_transcription" (str) and "chunks" (list of {start, end, text}).
+            
+        Note:
+            OpenVINO GenAI's WhisperPipeline does not expose per-segment confidence scores.
+            Audio usability is determined via heuristics in ASRNode.
         """
         if self.pipeline is None:
             raise RuntimeError("ASR pipeline not initialized.")
@@ -93,8 +99,7 @@ class ASRWrapper(BaseLLMWrapper):
             result = self.pipeline.generate(
                 raw_speech,
                 task="transcribe",
-                return_timestamps=True,
-                logprobs = 1
+                return_timestamps=True
             )
 
             formatted_chunks = []

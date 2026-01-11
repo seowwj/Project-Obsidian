@@ -1,5 +1,13 @@
 ## Work Log / Backlog / Scratchpad
 
+## 2026-01-11 - Fresh Start 🌱 (Upgraded Arch with Intent)
+- Added more heuristics for audio segment usability. Added vocab diversity (unique words), and repeated phrase (potential model hallucinations) ([asr_node.py](asr_node.py))
+- Added Intent classification node to handle different types of queries.
+- Added Action executor node to handle different types of actions.
+- Reduces heavy reliance on LLM / SLM to decide what to do in a single query. Will now classify user intent first, then execute appropriate action. (If user prompt is unclear, will prompt the user for more information)
+
+![IntentClassification](worklog_images/Fresh-01-IntentDriven.png)
+
 ### 2026-01-10 - Fresh Start 🌱
 - Set up ASR / Whisper model for audio transcription. Currently able to return timestamps. For ASR, using OpenVINO GenAI library instead of OpenVINO / Optimum. (Experimentation to figure out if OpenVINO GenAI can provide Whisper confidence scores)
 - Create simple heuristics to estimate usability of audio segments.
