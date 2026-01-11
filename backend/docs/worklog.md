@@ -1,5 +1,12 @@
 ## Work Log / Backlog / Scratchpad
 
+## 2026-01-12 - Chat Persistence
+- Add SQLite checkpointer to persist chat history
+- Fixed missing general chat intent.
+
+_After sending "Hi, I am Alice", restarted server, and then sent "Do you remember my name?"_
+![Chat Persistence](worklog_images/Fresh-04-PersistentMemory.png)
+
 ## 2026-01-11 - VLM Support
 - Added VLM support to the graph
 - Added Fusion Node to fuse ASR + VLM into unified text chunks and store in ChromaDB

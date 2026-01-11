@@ -16,21 +16,22 @@ from .nodes.fusion_node import FusionNode
 
 logger = logging.getLogger(__name__)
 
-from langgraph.checkpoint.memory import MemorySaver
-
 
 class AgentOrchestrator:
-    def __init__(self):
+    def __init__(self, checkpointer=None):
         """
         Initialize Agent Orchestrator.
+        
+        Args:
+            checkpointer: Optional LangGraph checkpointer for persistent state.
+                          If None, uses in-memory state (lost on restart).
         """
         logger.info("Initializing Agent Orchestrator...")
+        self.graph = self._build_graph(checkpointer)
 
-        self.graph = self.build_graph()
-
-    def build_graph(self):
+    def _build_graph(self, checkpointer):
         """
-        Builds the agent graph with intent-based routing and VLM support.
+        Builds the agent graph structure with intent-based routing and VLM support.
 
         Flow:
         - With video: Entry → ASR → Chunking → VLM → Fusion → IntentClassifier → ActionExecutor → [ChatNode or END]
@@ -144,7 +145,5 @@ class AgentOrchestrator:
                 "intent_classifier": "intent_classifier"
             }
         )
-
-        checkpointer = MemorySaver()
 
         return graph.compile(checkpointer=checkpointer)

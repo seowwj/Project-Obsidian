@@ -35,6 +35,12 @@ INTENT_CONFIG = {
         "output_tool": None,
         "clarification": True,
     },
+    "CHAT": {
+        "context_source": None,  # No media context needed
+        "llm_task": "chat",
+        "output_tool": None,
+        "requires_media": False,
+    },
 }
 
 

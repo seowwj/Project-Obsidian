@@ -7,9 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from .base_node import BaseNode
 from ..state import AgentState
 
-logger = logging.getLogger(__name__)
-
-VALID_INTENTS = ["SUMMARIZE", "QUESTION", "EXPORT_SRT", "UNCLEAR"]
+VALID_INTENTS = ["SUMMARIZE", "QUESTION", "EXPORT_SRT", "CHAT", "UNCLEAR"]
 
 
 class IntentClassifierNode(BaseNode):
@@ -24,7 +22,7 @@ class IntentClassifierNode(BaseNode):
 
     def __init__(self, model):
         super().__init__(model=model, name="intent_classifier")
-        self.logger = logger
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def _build_classification_prompt(self, query: str, has_media: bool) -> str:
         """Build the intent classification prompt."""
@@ -36,6 +34,7 @@ Categories:
 - SUMMARIZE: User wants a summary, overview, or general understanding of the content
 - QUESTION: User asks a specific question about the content
 - EXPORT_SRT: User wants to export or download the transcript (SRT, subtitles, captions)
+- CHAT: General conversation, greetings, or questions NOT about media content
 - UNCLEAR: The intent is ambiguous or doesn't fit other categories
 
 Context: {media_context}

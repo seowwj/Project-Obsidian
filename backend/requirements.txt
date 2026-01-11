@@ -1,5 +1,6 @@
 mcp
 langgraph
+langgraph-checkpoint-sqlite
 fastapi
 uvicorn
 optimum-intel[openvino,nncf]

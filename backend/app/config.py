@@ -21,6 +21,18 @@ if OV_MODEL_DIR:
     except Exception as e:
         logger.warning(f"Could not create OV_MODEL_DIR at {OV_MODEL_DIR}: {e}")
 
+# Chat persistence database
+DEFAULT_CHAT_DB_DIR = os.path.join(os.path.expanduser("~"), ".cache", "obsidian", "chat")
+CHAT_DB_DIR = os.getenv("OBSIDIAN_CHAT_DB_DIR", DEFAULT_CHAT_DB_DIR)
+CHAT_DB_PATH = os.path.join(CHAT_DB_DIR, "chat_history.db")
+
+# Ensure chat db directory exists
+if CHAT_DB_DIR:
+    try:
+        os.makedirs(CHAT_DB_DIR, exist_ok=True)
+    except Exception as e:
+        logger.warning(f"Could not create CHAT_DB_DIR at {CHAT_DB_DIR}: {e}")
+
 # Cross-Platform Note:
 # To make this fully cross-platform (Linux/Windows), we rely on os.path.join and os.path.expanduser.
 # Path separators are handled automatically by Python.

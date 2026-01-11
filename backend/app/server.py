@@ -13,7 +13,17 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 import uvicorn
 
+# Monkeypatch for aiosqlite 0.22.0+ compatibility with langgraph-checkpoint-sqlite 3.0.1
+# See: https://github.com/langchain-ai/langgraph/issues/6583
+# aiosqlite 0.22.0 removed is_alive() since Connection no longer inherits from Thread
+import aiosqlite
+if not hasattr(aiosqlite.Connection, 'is_alive'):
+    aiosqlite.Connection.is_alive = lambda self: True
+    logger.info("Applied aiosqlite Connection.is_alive monkeypatch")
+
 from .orchestrator import AgentOrchestrator
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from .config import CHAT_DB_PATH
 
 # Global orchestrator instance
 orchestrator = None
@@ -22,8 +32,16 @@ orchestrator = None
 async def lifespan(app: FastAPI):
     global orchestrator
     logger.info("Initializing Agent Orchestrator...")
-    orchestrator = AgentOrchestrator()
-    yield
+    logger.info(f"Setting up AsyncSqliteSaver with database: {CHAT_DB_PATH}")
+    
+    # Use AsyncSqliteSaver context manager - keeps connection open for app lifetime
+    # Following the exact pattern from LangGraph docs
+    async with AsyncSqliteSaver.from_conn_string(CHAT_DB_PATH) as checkpointer:
+        orchestrator = AgentOrchestrator(checkpointer=checkpointer)
+        logger.info("Agent Orchestrator initialized with persistent SQLite checkpointer")
+        yield
+        # Context manager handles cleanup when app shuts down
+    
     logger.info("Shutting down...")
 
 app = FastAPI(lifespan=lifespan)
