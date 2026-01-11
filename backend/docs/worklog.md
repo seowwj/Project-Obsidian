@@ -1,5 +1,16 @@
 ## Work Log / Backlog / Scratchpad
 
+## 2026-01-11 - VLM Support
+- Added VLM support to the graph
+- Added Fusion Node to fuse ASR + VLM into unified text chunks and store in ChromaDB
+- Added Chunking Node to split audio into chunks for ASR
+
+- 🔧 BUGFIX: Reset `media_id` in state whenever we pass in a new file. This forces recomputation of file hash, preventing skipping due to stale / wrong state.
+
+- ⚠️ LIMITATION: Current state cannot compare multiple files effectively.
+
+![VLM Summary (with multiple files in same chat session)](worklog_images/Fresh-02-MultiFileSameChat.png)
+
 ## 2026-01-11 - Fresh Start 🌱 (Upgraded Arch with Intent)
 - Added more heuristics for audio segment usability. Added vocab diversity (unique words), and repeated phrase (potential model hallucinations) ([asr_node.py](asr_node.py))
 - Added Intent classification node to handle different types of queries.

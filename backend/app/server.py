@@ -67,13 +67,27 @@ async def chat_endpoint(request: ChatRequest):
             
             # Check for file attachments
             if request.file_path:
+                from .utils.file_utils import compute_sha256
                 ext = os.path.splitext(request.file_path)[1].lower()
+                
+                # Compute new media_id from file hash
+                new_media_id = compute_sha256(request.file_path)
+                logger.info(f"New file media_id: {new_media_id[:16]}...")
+                
                 if ext in ['.wav', '.mp3', '.m4a', '.flac']:
                     logger.info(f"Injecting audio path: {request.file_path}")
                     inputs["audio_path"] = request.file_path
+                    inputs["video_path"] = ""  # Clear video path
+                    # Force new media_id to override stale state
+                    inputs["media_id"] = new_media_id
+                    inputs["vlm_processed"] = False
                 elif ext in ['.mp4', '.mkv', '.mov', '.avi']:
                     logger.info(f"Injecting video path: {request.file_path}")
                     inputs["video_path"] = request.file_path
+                    inputs["audio_path"] = ""  # Clear audio path
+                    # Force new media_id to override stale state
+                    inputs["media_id"] = new_media_id
+                    inputs["vlm_processed"] = False
                 else:
                     logger.warning(f"Unsupported file type: {ext}")
             

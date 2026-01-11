@@ -7,8 +7,6 @@ from ..state import AgentState
 
 import logging
 
-logger = logging.getLogger(__name__)
-
 # Task-specific system prompts
 TASK_PROMPTS = {
     "summarize": """You are a helpful AI assistant called Obsidian.
@@ -38,9 +36,10 @@ class ChatNode(BaseNode):
     
     def __init__(self, model, name="chat_node"):
         super().__init__(model=model, name=name)
+        self.logger = logging.getLogger(self.__class__.__name__)
     
     async def __call__(self, state: AgentState, config: RunnableConfig = None) -> Dict[str, Any]:
-        logger.info(f"--- Node {self.name} processing ---")
+        self.logger.info(f"--- Node {self.name} processing ---")
         
         messages = state.get("messages", [])
         
@@ -49,9 +48,9 @@ class ChatNode(BaseNode):
         prepared_context = state.get("prepared_context")
         tool_result = state.get("tool_result")
         
-        logger.info(f"LLM task: {llm_task}")
-        logger.info(f"Prepared context: {len(prepared_context) if prepared_context else 0} chars")
-        logger.info(f"Tool result: {len(tool_result) if tool_result else 0} chars")
+        self.logger.info(f"LLM task: {llm_task}")
+        self.logger.info(f"Prepared context: {len(prepared_context) if prepared_context else 0} chars")
+        self.logger.info(f"Tool result: {len(tool_result) if tool_result else 0} chars")
         
         # Build system prompt based on task
         system_prompt = TASK_PROMPTS.get(llm_task, TASK_PROMPTS["general"])
@@ -65,9 +64,23 @@ class ChatNode(BaseNode):
         
         # Build message list
         model_messages = [SystemMessage(content=system_prompt)]
-        model_messages.extend(messages)
         
-        logger.info(f"LLM input messages: {len(model_messages)}")
+        # For summarize and present_result, only use the last message to avoid
+        # context pollution from previous conversations about different files
+        if llm_task in ["summarize", "present_result"]:
+            # Only include the last user message
+            last_human_msg = None
+            for msg in reversed(messages):
+                if msg.type == "human":
+                    last_human_msg = msg
+                    break
+            if last_human_msg:
+                model_messages.append(last_human_msg)
+        else:
+            # For answer/general tasks, include full history for context
+            model_messages.extend(messages)
+        
+        self.logger.info(f"LLM input messages: {len(model_messages)}")
         
         # Get streaming callback if available
         stream_callback = None
@@ -79,5 +92,5 @@ class ChatNode(BaseNode):
         
         message = AIMessage(content=response_text)
         
-        logger.info(f"LLM output: {response_text[:200]}...")
+        self.logger.info(f"LLM output: {response_text[:200]}...")
         return {"messages": [message]}

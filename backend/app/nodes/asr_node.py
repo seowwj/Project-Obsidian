@@ -14,11 +14,12 @@ from ..utils.file_utils import compute_sha256
 
 logger = logging.getLogger(__name__)
 
+
 class ASRNode(BaseNode):
     def __init__(self, model: ASRWrapper, collection_name: str = "asr_segments"):
         super().__init__(model=model, name="asr_node")
-        self.logger = logger
-        self.model = model # ASRWrapper instance
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.model = model
 
         # Initialize VectorStore for caching
         self.vector_store = VectorStore(collection_name=collection_name)
@@ -161,7 +162,7 @@ class ASRNode(BaseNode):
 
         Flags segments with:
         - Duration anomalies (very long duration with little text)
-        - Extremely short segments with generic content
+        - Very sparse segments (few words spoken / second (currently set at 0.1))
 
         Returns:
             list of flagged segments with reasons
@@ -185,18 +186,6 @@ class ASRNode(BaseNode):
             # Very sparse: less than 0.1 words per second
             if duration > 0 and word_count / duration < 0.1:
                 issues.append("very_sparse")
-
-            # Generic filler detection
-            generic_phrases = [
-                "thank you for watching",
-                "please subscribe",
-                "like and subscribe",
-                "see you next time",
-            ]
-            text_lower = text.lower()
-            for phrase in generic_phrases:
-                if phrase in text_lower:
-                    issues.append(f"generic_filler:{phrase}")
 
             if issues:
                 flagged.append({
@@ -257,10 +246,76 @@ class ASRNode(BaseNode):
 
         self.vector_store.add_texts(texts=texts, metadatas=metadatas)
 
+    def _extract_audio_from_video(self, video_path: str) -> str:
+        """
+        Extract audio from video file using ffmpeg.
+
+        Args:
+            video_path: Path to video file
+
+        Returns:
+            Path to extracted audio file, or None if extraction fails
+        """
+        import subprocess
+        import tempfile
+        from ..utils.ffmpeg_utils import ensure_ffmpeg_in_path
+
+        ensure_ffmpeg_in_path()
+
+        # Create output path in temp directory
+        video_basename = os.path.splitext(os.path.basename(video_path))[0]
+        audio_path = os.path.join(tempfile.gettempdir(), f"{video_basename}_audio.wav")
+
+        # Skip if already extracted
+        if os.path.exists(audio_path):
+            self.logger.info(f"Using cached extracted audio: {audio_path}")
+            return audio_path
+
+        self.logger.info(f"Extracting audio from video: {video_path} -> {audio_path}")
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", video_path,        # Input video file
+            "-vn",                   # No video
+            "-acodec", "pcm_s16le",  # WAV format
+            "-ar", "16000",          # 16kHz for Whisper
+            "-ac", "1",              # Mono audio (for Whisper)
+            audio_path               # Output audio file
+        ]
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                check=True,
+                timeout=300  # 5 minute timeout
+            )
+            self.logger.info(f"Audio extraction complete: {audio_path}")
+            return audio_path
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"ffmpeg audio extraction failed: {e.stderr.decode() if e.stderr else e}")
+            return None
+        except subprocess.TimeoutExpired:
+            self.logger.error("ffmpeg audio extraction timed out")
+            return None
+        except Exception as e:
+            self.logger.error(f"Audio extraction failed: {e}")
+            return None
+
     async def __call__(self, state: AgentState, config: RunnableConfig = None) -> Dict[str, Any]:
         self.logger.info(f"--- Node {self.name} processing ---")
 
         audio_path = state.get("audio_path")
+        video_path = state.get("video_path")
+
+        # If no audio_path but video_path exists, extract audio from video
+        if not audio_path and video_path:
+            self.logger.info(f"No audio_path, extracting audio from video: {video_path}")
+            audio_path = self._extract_audio_from_video(video_path)
+            if not audio_path:
+                self.logger.warning("Failed to extract audio from video. Skipping ASRNode.")
+                return {"audio_usability": {"audio_usable": False, "classification": "extraction_failed"}}
+
         if not audio_path:
             self.logger.warning("No audio_path found in state. Skipping ASRNode.")
             return {}
@@ -270,11 +325,17 @@ class ASRNode(BaseNode):
             self.logger.error(error_msg)
             return {"messages": [HumanMessage(content=f"Error: {error_msg}")]}
 
-        # 1. Determine Media ID (Media ID will be provided if origin is from video)
+        # 1. Determine Media ID
+        # Priority: existing state > video_path > audio_path
+        # Use video hash when available so audio and video share the same ID
         media_id = state.get("media_id")
         if not media_id:
-            self.logger.info("No media_id in state. Computing SHA256...")
-            media_id = compute_sha256(audio_path)
+            if video_path and os.path.exists(video_path):
+                self.logger.info("Computing media_id from video_path...")
+                media_id = compute_sha256(video_path)
+            else:
+                self.logger.info("Computing media_id from audio_path...")
+                media_id = compute_sha256(audio_path)
 
         self.logger.info(f"Processing audio: {audio_path} (Media ID: {media_id})")
 

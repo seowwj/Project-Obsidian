@@ -22,7 +22,12 @@ class AgentState(TypedDict):
     # ASR metadata only - segments stored in ChromaDB
     audio_usability: Optional[Dict[str, Any]]
 
-    # Intent routing (see architecture_intent_routing.md)
+    # VLM Metadata
+    processing_chunks: Optional[List[Dict[str, Any]]]  # Chunks pending VLM processing
+    vlm_results: Optional[List[Dict[str, Any]]]        # VLM output per chunk
+    vlm_processed: Optional[bool]                      # Flag indicating VLM stage complete
+
+    # Intent routing
     intent: Optional[str]            # "SUMMARIZE", "QUESTION", "EXPORT_SRT", "UNCLEAR"
     prepared_context: Optional[str]  # Full transcript or RAG results
     tool_result: Optional[str]       # Output from tool execution
@@ -30,3 +35,4 @@ class AgentState(TypedDict):
 
     # TODO: Legacy - to be removed
     rag_context: Optional[str]
+
