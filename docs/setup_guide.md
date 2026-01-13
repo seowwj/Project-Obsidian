@@ -3,7 +3,7 @@
 ## Installation
 
 ### 1. Simple Bundle
-Run the provided installer (`.msi` or `.exe`). This will install:
+Run the provided installer. This will install:
 -   The Frontend (UI)
 -   The Backend (AI Server, bundled as a sidecar)
 -   All necessary dependencies (OpenVINO runtimes, ChromaDB, etc.)

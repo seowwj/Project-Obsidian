@@ -2,32 +2,56 @@
 
 A fully local AI ecosystem for video summarization and PDF/PPT generation.
 
+## Architecture
+See [architecture.md](architecture.md) for a high-level overview of the architecture.
+
+## Installation
+1. Set up / install models using `scripts/setup_models.ps1`.
+    - To install models to a custom directory, see [setup_guide.md](docs\setup_guide.md)
+2. Install using packaged installer exe file. (Get from releases)
+    - To use models from a custom dictory, see [setup_guide.md - Manual Configuration section](docs\setup_guide.md#manual-configuration-optional) (need to create `settings.json`)
+
 ## Environment Setup (Development)
 
 ### Prerequisites
-- Windows OS (Migrated from Ubuntu/WSL)
-- Python 3.x (Add to PATH during installation)
+- Windows (in theory should also work with Ubuntu / WSL)
+- Python 3.x
+- Rust
+- Node.js / npm
 
 ### Backend Initialization
 ```bash
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate
 pip install uv
 uv pip install -r requirements.txt
 ```
 
-## Running the Application
+### Frontend Initialization
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+## Running the Application (Development)
 
 ### Start Backend
-```powershell
+```bash
 cd backend
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate
 python -m app.server
 ```
 
+### Start Frontend
+```bash
+cd frontend
+npm run tauri dev
+```
+
 ## Known Limitations
-- **iGPU Drivers**: Due to issues with iGPU drivers on older processors within WSL, the development environment has been migrated to pure Windows. This is a known constraint for hardware acceleration support.
+- iGPU Drivers: Due to issues with iGPU drivers on older processors within WSL, the development environment has been migrated to pure Windows.
 
 ## Troubleshooting
 ### "FFmpeg not found" Error
