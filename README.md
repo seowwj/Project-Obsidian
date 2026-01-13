@@ -7,9 +7,9 @@ See [architecture.md](architecture.md) for a high-level overview of the architec
 
 ## Installation
 1. Set up / install models using `scripts/setup_models.ps1`.
-    - To install models to a custom directory, see [setup_guide.md](docs\setup_guide.md)
+    - To install models to a custom directory, see [setup_guide.md](docs/setup_guide.md)
 2. Install using packaged installer exe file. (Get from releases)
-    - To use models from a custom dictory, see [setup_guide.md - Manual Configuration section](docs\setup_guide.md#manual-configuration-optional) (need to create `settings.json`)
+    - To use models from a custom dictory, see [setup_guide.md - Manual Configuration section](docs/setup_guide.md#manual-configuration-optional) (need to create `settings.json`)
 
 ## Sample Files and Prompts
 Sample files are available in [test_media](test_media) directory.
