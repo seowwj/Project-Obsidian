@@ -8,6 +8,18 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "dialog:default"
+    "dialog:default",
+    "store:default",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "binaries/backend",
+          "args": true,
+          "sidecar": true
+        }
+      ]
+    },
+    "shell:allow-open"
   ]
 }

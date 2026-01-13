@@ -1,5 +1,8 @@
 ## Work Log / Backlog / Scratchpad
 
+## 2026-01-13 - Creating packaged installer
+- Create installer for app (PyInstaller for backend + load as sidecar for frontend / Tauri)
+
 ## 2026-01-13 - Connecting Frontend + Backend using ConnectRPC
 - Create Frontend / UI
 - Connect Frontend UI with Backend using Connect RPC (currently hybrid FastAPI + Connect RPC)
