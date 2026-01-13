@@ -12,6 +12,11 @@ function App() {
         console.log("Loading settings...");
         const settings = await SettingsManager.initialize();
 
+        if (import.meta.env.DEV) {
+          console.log("Skipping backend sidecar in development mode");
+          return;
+        }
+
         console.log("Attempting to spawn backend sidecar...");
         const command = Command.sidecar("binaries/backend", [], {
           env: {
