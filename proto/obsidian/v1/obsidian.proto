@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package obsidian.v1;
+
+// ============================================================================
+// Chat Service - Streaming AI responses
+// ============================================================================
+
+message ChatRequest {
+  string message = 1;
+  string session_id = 2;
+  optional string file_path = 3;  // Local path to media file (audio/video)
+}
+
+message ChatResponse {
+  string token = 1;  // Streamed token from AI
+}
+
+service ChatService {
+  // Send a message and receive streaming AI response
+  rpc Chat(ChatRequest) returns (stream ChatResponse);
+}
+
+// ============================================================================
+// Session Service - Manage chat sessions
+// ============================================================================
+
+message Session {
+  string id = 1;
+  string title = 2;
+  int64 created_at = 3;   // Unix timestamp (seconds)
+  int64 updated_at = 4;   // Unix timestamp (seconds)
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message CreateSessionRequest {
+  optional string title = 1;  // Auto-generated if not provided
+}
+
+message CreateSessionResponse {
+  Session session = 1;
+}
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionResponse {}
+
+message RenameSessionRequest {
+  string session_id = 1;
+  string new_title = 2;
+}
+
+message RenameSessionResponse {
+  Session session = 1;
+}
+
+service SessionService {
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+  rpc RenameSession(RenameSessionRequest) returns (RenameSessionResponse);
+}
+
+// ============================================================================
+// History Service - Retrieve chat history
+// ============================================================================
+
+message ChatMessage {
+  string id = 1;
+  string role = 2;      // "user" or "assistant"
+  string content = 3;
+  int64 timestamp = 4;  // Unix timestamp (seconds)
+}
+
+message GetHistoryRequest {
+  string session_id = 1;
+}
+
+message GetHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+service HistoryService {
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+}
+
+// ============================================================================
+// Health Service - Simple health check
+// ============================================================================
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;  // "ok"
+}
+
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}

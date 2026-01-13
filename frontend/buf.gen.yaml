@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  # Generate TypeScript/ES messages (v1.x for compatibility with connect-es v1)
+  - remote: buf.build/bufbuild/es:v1.10.0
+    out: src/gen
+  # Generate ConnectRPC TypeScript service stubs (v1.x)
+  - remote: buf.build/connectrpc/es:v1.6.1
+    out: src/gen

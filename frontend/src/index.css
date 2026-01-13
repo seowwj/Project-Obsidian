@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* Premium Dark Theme - Zinc Scale & Blue Accents */
+:root {
+  /* Backgrounds */
+  --bg-primary: #121828;
+  /* Main Chat Area */
+  --bg-secondary: #040712;
+  /* Sidebar */
+  --bg-tertiary: #1f2937;
+  /* Hover/Active states (Gray-800 usually works well with blue-blacks) */
+
+  /* Borders */
+  --border-subtle: #1f2937;
+  --border-strong: #374151;
+
+  /* Text */
+  --text-primary: #f9fafb;
+  /* Gray 50 */
+  --text-secondary: #d1d5db;
+  /* Gray 300 */
+  --text-muted: #9ca3af;
+  /* Gray 400 */
+
+  /* Accents */
+  --accent-primary: #3a5af9;
+  /* User's Blue */
+  --accent-hover: #2546e0;
+  --accent-surface: rgba(58, 90, 249, 0.1);
+
+  /* Status */
+  --status-success: #22c55e;
+  --status-warning: #eab308;
+  --status-error: #ef4444;
+
+  /* Message Bubbles */
+  --bubble-user: #3a5af9;
+  --bubble-ai: #1f2937;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Utility classes */
+.glass {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: white;
+}

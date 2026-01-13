@@ -1,0 +1,11 @@
+version: v2
+plugins:
+  # Generate Python protobuf messages
+  - remote: buf.build/protocolbuffers/python
+    out: backend/gen
+  # Generate Python type stubs
+  - remote: buf.build/protocolbuffers/pyi
+    out: backend/gen
+  # Generate ConnectRPC Python service stubs
+  - remote: buf.build/connectrpc/python
+    out: backend/gen

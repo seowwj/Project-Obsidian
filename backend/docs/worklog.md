@@ -1,5 +1,11 @@
 ## Work Log / Backlog / Scratchpad
 
+## 2026-01-13 - Connecting Frontend + Backend using ConnectRPC
+- Create Frontend / UI
+- Connect Frontend UI with Backend using Connect RPC (currently hybrid FastAPI + Connect RPC)
+
+![Frontend](worklog_images/Fresh-05-FrontendUI.png)
+
 ## 2026-01-12 - Chat Persistence
 - Add SQLite checkpointer to persist chat history
 - Fixed missing general chat intent.
