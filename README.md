@@ -11,6 +11,19 @@ See [architecture.md](architecture.md) for a high-level overview of the architec
 2. Install using packaged installer exe file. (Get from releases)
     - To use models from a custom dictory, see [setup_guide.md - Manual Configuration section](docs\setup_guide.md#manual-configuration-optional) (need to create `settings.json`)
 
+## Sample Files and Prompts
+Sample files are available in [test_media](test_media) directory.
+
+> **Details and screenshots are available at [Report.pdf](Report.pdf)**
+
+1. General chatting (demonstrate general chat function and memory)
+    - "My name is <name>"
+    - "Do you remember my name?"
+2. Video / Audio understanding
+    - _Attach mp3 file_ "Summarize the audio"
+    - _Attach mp4 file_ "Summarize the video"
+    - _Attach mp4 file_ "Is there a graph in the video?"
+
 ## Environment Setup (Development)
 
 ### Prerequisites
