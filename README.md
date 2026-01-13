@@ -24,6 +24,29 @@ Sample files are available in [test_media](test_media) directory.
     - _Attach mp4 file_ "Summarize the video"
     - _Attach mp4 file_ "Is there a graph in the video?"
 
+## Repo Structure
+```text
+Project-Obsidian/
+├── backend/                # Python backend (FastAPI + ConnectRPC)
+│   ├── app/
+│   │   ├── agents/         # AI agent logic and definitions
+│   │   ├── nodes/          # Processing nodes (ASR, VLM, LLM, etc.)
+│   │   ├── services/       # Core application services
+│   │   ├── tools/          # Tool integrations
+│   │   ├── orchestrator.py # Graph orchestration logic
+│   │   └── server.py       # Main backend server entry point
+│   ├── gen/                # Generated Python protobuf code
+│   └── run_backend.ps1     # Startup script
+├── frontend/               # Desktop application (Tauri + React + TypeScript)
+│   ├── src/
+│   │   ├── components/     # React UI components
+│   │   ├── gen/            # Generated TypeScript protobuf code
+│   │   ├── store/          # State management (Zustand)
+│   │   └── App.tsx         # Main application component
+│   └── src-tauri/          # Rust backend for Tauri integration
+└── proto/                  # Protocol Buffer definitions (.proto shared modules)
+```
+
 ## Environment Setup (Development)
 
 ### Prerequisites
